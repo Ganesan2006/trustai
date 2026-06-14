@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard – RAG Enterprise</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .header {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 1.8rem; font-weight: 600; }
+        .company-badge {
+            background: #1e293b;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+        }
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 12px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            padding: 8px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .tab-btn:hover:not(.active) {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-title { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: #f1f5f9; }
+        .stat-sub { font-size: 0.7rem; color: #64748b; margin-top: 4px; }
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .chart-card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 20px;
+        }
+        .chart-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            color: #cbd5e1;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+        th { color: #94a3b8; font-weight: 500; }
+        .badge {
+            background: #3b82f6;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        .loading { text-align: center; padding: 40px; color: #94a3b8; }
+        @media (max-width: 768px) {
+            .chart-row { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+    <div class="header">
+        <h1>📊 RAG Enterprise Admin</h1>
+        <div class="company-badge" id="companyName">Loading...</div>
+    </div>
+
+    <div class="tabs" id="tabs">
+        <button class="tab-btn active" data-tab="overview">🏠 Overview</button>
+        <button class="tab-btn" data-tab="users">👥 Users</button>
+        <button class="tab-btn" data-tab="documents">📄 Documents</button>
+        <button class="tab-btn" data-tab="ai-usage">🤖 AI Usage</button>
+        <button class="tab-btn" data-tab="retrieval">🔍 Retrieval</button>
+        <button class="tab-btn" data-tab="knowledge">📚 Knowledge Gaps</button>
+        <button class="tab-btn" data-tab="feedback">💬 Feedback</button>
+        <button class="tab-btn" data-tab="security">🛡️ Security</button>
+        <button class="tab-btn" data-tab="organization">🏢 Organization</button>
+    </div>
+
+    <!-- ==================== Overview Tab ==================== -->
+    <div id="overview-tab" class="tab-content active">
+        <div class="stats-grid" id="overviewStats"></div>
+        <div class="chart-row">
+            <div class="chart-card"><h3>📈 Query Trend (Last 7 Days)</h3><canvas id="trendChart"></canvas></div>
+            <div class="chart-card"><h3>💰 AI Cost by Provider</h3><canvas id="costChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- ==================== Users Tab ==================== -->
+    <div id="users-tab" class="tab-content">
+        <div class="stats-grid" id="userStats"></div>
+        <div class="chart-row">
+            <div class="chart-card"><h3>👥 Department Wise Users</h3><canvas id="deptChart"></canvas></div>
+            <div class="chart-card"><h3>🔥 Most Active Users</h3><table id="activeUsersTable"><tbody></tbody></table></div>
+        </div>
+        <div class="chart-card"><h3>📋 All Users</h3><div style="overflow-x: auto;"><table id="usersTable"><thead><tr><th>Name</th><th>Email</th><th>Department</th><th>Team</th><th>Role</th><th>Queries</th></tr></thead><tbody></tbody></table></div></div>
+    </div>
+
+    <!-- ==================== Documents Tab ==================== -->
+    <div id="documents-tab" class="tab-content">
+        <div class="stats-grid" id="docStats"></div>
+        <div class="chart-row">
+            <div class="chart-card"><h3>📂 File Types</h3><canvas id="fileTypeChart"></canvas></div>
+            <div class="chart-card"><h3>🏢 Department Wise Files</h3><canvas id="deptFilesChart"></canvas></div>
+        </div>
+        <div class="chart-card"><h3>📄 Recent Uploads</h3><table id="recentUploadsTable"><tbody></tbody></table></div>
+    </div>
+
+    <!-- ==================== AI Usage Tab ==================== -->
+    <div id="ai-usage-tab" class="tab-content">
+        <div class="stats-grid" id="aiStats"></div>
+        <div class="chart-row">
+            <div class="chart-card"><h3>⏰ Queries Per Hour</h3><canvas id="hourlyChart"></canvas></div>
+            <div class="chart-card"><h3>🔝 Top Questions</h3><table id="topQuestionsTable"><tbody></tbody></table></div>
+        </div>
+    </div>
+
+    <!-- ==================== Retrieval Tab ==================== -->
+    <div id="retrieval-tab" class="tab-content">
+        <div class="stats-grid" id="retrievalStats"></div>
+        <div class="chart-row">
+            <div class="chart-card"><h3>📊 Similarity Distribution</h3><canvas id="simChart"></canvas></div>
+            <div class="chart-card"><h3>📄 Top Retrieved Documents</h3><table id="topRetrievedTable"><tbody></tbody></table></div>
+        </div>
+    </div>
+
+    <!-- ==================== Knowledge Gaps Tab ==================== -->
+    <div id="knowledge-tab" class="tab-content">
+        <div class="stats-grid" id="gapStats"></div>
+        <div class="chart-card"><h3>❓ Top Missing Topics</h3><table id="gapTable"><tbody></tbody></table></div>
+    </div>
+
+    <!-- ==================== Feedback Tab ==================== -->
+    <div id="feedback-tab" class="tab-content">
+        <div class="stats-grid" id="feedbackStats"></div>
+        <div class="chart-card"><h3>📉 Feedback Trend</h3><canvas id="feedbackTrendChart"></canvas></div>
+        <div class="chart-card"><h3>⚠️ Worst Queries</h3><table id="worstQueriesTable"><tbody></tbody></table></div>
+    </div>
+
+    <!-- ==================== Security Tab ==================== -->
+    <div id="security-tab" class="tab-content">
+        <div class="chart-card"><h3>🔒 Recent Access Logs</h3><table id="accessLogsTable"><tbody></tbody></table></div>
+    </div>
+
+    <!-- ==================== Organization Tab ==================== -->
+    <div id="organization-tab" class="tab-content">
+        <div class="stats-grid" id="orgStats"></div>
+        <div class="chart-card"><h3>🔑 API Keys & Models</h3><table id="apiKeysTable"><tbody></tbody></table></div>
+    </div>
+</div>
+
+<script>
+    const api = axios.create({ baseURL: '', headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } });
+    let charts = {};
+
+    // Helper to render stats grid
+    function renderStats(containerId, stats) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        for (const [key, value] of Object.entries(stats)) {
+            container.innerHTML += `<div class="stat-card"><div class="stat-title">${key.replace(/_/g, ' ').toUpperCase()}</div><div class="stat-value">${value}</div></div>`;
+        }
+    }
+
+    // Overview
+    async function loadOverview() {
+        const res = await api.get('/admin/analytics/overview?period=week');
+        const data = res.data;
+        renderStats('overviewStats', {
+            'Total Users': data.total_users,
+            'Documents': data.total_documents,
+            'Conversations': data.total_conversations,
+            'Queries (7d)': data.queries_today,
+            'Active Users': data.active_users,
+            'Avg Confidence': `${data.avg_confidence}%`,
+            'AI Cost': `$${data.total_cost}`,
+            'Storage': `${data.storage_gb} GB`
+        });
+        // Trend chart
+        if (charts.trend) charts.trend.destroy();
+        charts.trend = new Chart(document.getElementById('trendChart'), {
+            type: 'line', data: { labels: data.trend.map(t => t.date), datasets: [{ label: 'Queries', data: data.trend.map(t => t.count), borderColor: '#3b82f6', tension: 0.3 }] }
+        });
+        if (charts.cost) charts.cost.destroy();
+        charts.cost = new Chart(document.getElementById('costChart'), {
+            type: 'pie', data: { labels: data.cost_by_provider.map(c => c.provider), datasets: [{ data: data.cost_by_provider.map(c => c.cost), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'] }] }
+        });
+    }
+
+    // Users
+    async function loadUsers() {
+        const res = await api.get('/admin/analytics/users');
+        const data = res.data;
+        renderStats('userStats', {
+            'Total': data.total,
+            'Admins': data.roles.admins,
+            'Employees': data.roles.employees,
+            'Departments': data.department_wise.length
+        });
+        if (charts.dept) charts.dept.destroy();
+        charts.dept = new Chart(document.getElementById('deptChart'), {
+            type: 'bar', data: { labels: data.department_wise.map(d => d.name), datasets: [{ label: 'Users', data: data.department_wise.map(d => d.count), backgroundColor: '#3b82f6' }] }
+        });
+        const activeTbody = document.querySelector('#activeUsersTable tbody');
+        activeTbody.innerHTML = data.most_active.map(u => `<tr><td>${u.name}</td><td>${u.queries} queries</td></tr>`).join('');
+        const usersTbody = document.querySelector('#usersTable tbody');
+        usersTbody.innerHTML = data.users.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td>${u.department || '-'}</td><td>${u.team || '-'}</td><td><span class="badge">${u.role}</span></td><td>${u.queries}</td></tr>`).join('');
+    }
+
+    // Documents
+    async function loadDocuments() {
+        const res = await api.get('/admin/analytics/documents');
+        const data = res.data;
+        renderStats('docStats', {
+            'Total': data.total_documents,
+            'Storage': `${data.storage_gb} GB`,
+            'Duplicates': data.duplicate_files,
+            'Private': data.private_files,
+            'Department': data.department_files,
+            'Team': data.team_files
+        });
+        if (charts.fileType) charts.fileType.destroy();
+        charts.fileType = new Chart(document.getElementById('fileTypeChart'), {
+            type: 'pie', data: { labels: data.file_types.map(f => f.type), datasets: [{ data: data.file_types.map(f => f.count), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }] }
+        });
+        if (charts.deptFiles) charts.deptFiles.destroy();
+        charts.deptFiles = new Chart(document.getElementById('deptFilesChart'), {
+            type: 'bar', data: { labels: data.department_wise.map(d => d.department), datasets: [{ label: 'Files', data: data.department_wise.map(d => d.count), backgroundColor: '#f59e0b' }] }
+        });
+        const recentTbody = document.querySelector('#recentUploadsTable tbody');
+        recentTbody.innerHTML = data.recent_uploads.map(f => `<tr><td>${f.name}</td><td>${f.department || '-'}</td><td>${f.team || '-'}</td><td>${new Date(f.uploaded_at).toLocaleString()}</td></tr>`).join('');
+    }
+
+    // AI Usage
+    async function loadAIUsage() {
+        const res = await api.get('/admin/analytics/ai-usage?period=week');
+        const data = res.data;
+        renderStats('aiStats', {
+            'Total Queries': data.total_queries,
+            'Avg Response': `${data.avg_response_time_ms} ms`,
+            'Avg Confidence': `${data.avg_confidence}%`,
+            'Total Cost': `$${data.total_cost}`
+        });
+        if (charts.hourly) charts.hourly.destroy();
+        charts.hourly = new Chart(document.getElementById('hourlyChart'), {
+            type: 'bar', data: { labels: data.hourly_queries.map(h => `${h.hour}:00`), datasets: [{ label: 'Queries', data: data.hourly_queries.map(h => h.count), backgroundColor: '#3b82f6' }] }
+        });
+        const topTbody = document.querySelector('#topQuestionsTable tbody');
+        topTbody.innerHTML = data.top_questions.map(q => `<tr><td>${q.question}</td><td>${q.count}</td></tr>`).join('');
+    }
+
+    // Retrieval
+    async function loadRetrieval() {
+        const res = await api.get('/admin/analytics/retrieval');
+        const data = res.data;
+        renderStats('retrievalStats', {
+            'Avg Chunks': data.avg_retrieved_chunks,
+            'Avg Similarity': data.avg_similarity,
+            'Failed Retrievals': data.failed_retrievals,
+            'Knowledge Coverage': `${data.knowledge_coverage}%`
+        });
+        if (charts.sim) charts.sim.destroy();
+        charts.sim = new Chart(document.getElementById('simChart'), {
+            type: 'bar', data: { labels: data.similarity_distribution.map(s => s.range), datasets: [{ label: 'Chunks', data: data.similarity_distribution.map(s => s.count), backgroundColor: '#10b981' }] }
+        });
+        const topRetrievedTbody = document.querySelector('#topRetrievedTable tbody');
+        topRetrievedTbody.innerHTML = data.top_retrieved_documents.map(d => `<tr><td>${d.document}</td><td>${d.count}</td></tr>`).join('');
+    }
+
+    // Knowledge Gaps
+    async function loadKnowledgeGaps() {
+        const res = await api.get('/admin/analytics/knowledge-gaps');
+        const data = res.data;
+        renderStats('gapStats', {
+            'Total Gaps': data.total_gaps,
+            'Resolved': data.resolved,
+            'Pending': data.pending
+        });
+        const gapTbody = document.querySelector('#gapTable tbody');
+        gapTbody.innerHTML = data.top_missing_topics.map(g => `<tr><td>${g.question}</td><td>${g.occurred} times</td></tr>`).join('');
+    }
+
+    // Feedback
+    async function loadFeedback() {
+        const res = await api.get('/admin/analytics/feedback');
+        const data = res.data;
+        renderStats('feedbackStats', {
+            '👍 Helpful': data.positive,
+            '👎 Not Helpful': data.negative,
+            '⭐ Avg Rating': `${data.average_rating}/5`
+        });
+        if (charts.feedbackTrend) charts.feedbackTrend.destroy();
+        charts.feedbackTrend = new Chart(document.getElementById('feedbackTrendChart'), {
+            type: 'line', data: { labels: data.trend.map(t => t.month), datasets: [
+                { label: 'Helpful', data: data.trend.map(t => t.helpful), borderColor: '#10b981' },
+                { label: 'Not Helpful', data: data.trend.map(t => t.not_helpful), borderColor: '#ef4444' }
+            ] }
+        });
+        const worstTbody = document.querySelector('#worstQueriesTable tbody');
+        worstTbody.innerHTML = data.worst_queries.map(q => `<tr><td>${q.question}</td><td>${q.confidence}%</td></tr>`).join('');
+    }
+
+    // Security
+    async function loadSecurity() {
+        const res = await api.get('/admin/analytics/security');
+        const data = res.data;
+        const accessTbody = document.querySelector('#accessLogsTable tbody');
+        accessTbody.innerHTML = data.recent_access_logs.map(log => `<tr><td>${log.user}</td><td>${log.file}</td><td>${log.action}</td><td>${log.ip}</td><td>${new Date(log.timestamp).toLocaleString()}</td></tr>`).join('');
+    }
+
+    // Organization
+    async function loadOrganization() {
+        const res = await api.get('/admin/analytics/organization');
+        const data = res.data;
+        document.getElementById('companyName').innerText = data.name;
+        renderStats('orgStats', {
+            'Employees': data.employees,
+            'Departments': data.departments,
+            'Teams': data.teams,
+            'Industry': data.industry || 'N/A'
+        });
+        const apiTbody = document.querySelector('#apiKeysTable tbody');
+        apiTbody.innerHTML = data.api_providers.map(p => `<tr><td>${p.provider}</td><td>${p.active ? '✅ Active' : '❌ Inactive'}</td></tr>`).join('');
+    }
+
+    // Tab switching & loading
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.dataset.tab;
+            tabs.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            contents.forEach(c => c.classList.remove('active'));
+            document.getElementById(`${tabId}-tab`).classList.add('active');
+            if (tabId === 'overview') loadOverview();
+            else if (tabId === 'users') loadUsers();
+            else if (tabId === 'documents') loadDocuments();
+            else if (tabId === 'ai-usage') loadAIUsage();
+            else if (tabId === 'retrieval') loadRetrieval();
+            else if (tabId === 'knowledge') loadKnowledgeGaps();
+            else if (tabId === 'feedback') loadFeedback();
+            else if (tabId === 'security') loadSecurity();
+            else if (tabId === 'organization') loadOrganization();
+        });
+    });
+
+    // Initial load
+    loadOverview();
+    loadUsers();      // preload in background
+    loadDocuments();
+    loadAIUsage();
+    loadRetrieval();
+    loadKnowledgeGaps();
+    loadFeedback();
+    loadSecurity();
+    loadOrganization();
+</script>
+</body>
+</html>

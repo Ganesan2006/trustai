@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Your Organization | TrustAI</title>
+    <link rel="stylesheet" href="/static/org_login.css">
+    <style>
+        /* Additional styles for dynamic lists */
+        .dynamic-section {
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color, #e0e0e0);
+            border-radius: 16px;
+            padding: 16px;
+            background: #f9fafb;
+        }
+        .dynamic-items {
+            margin-bottom: 12px;
+        }
+        .dynamic-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .dynamic-item input, .dynamic-item select {
+            flex: 1;
+            min-width: 120px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+        .remove-item {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        .add-btn {
+            background: var(--primary, #0b57d0);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .error-message {
+            color: #dc2626;
+            background: #fee2e2;
+            padding: 12px;
+            border-radius: 12px;
+            display: none;
+            margin-bottom: 16px;
+        }
+        .success-message {
+            color: #10b981;
+            background: #d1fae5;
+            padding: 12px;
+            border-radius: 12px;
+            display: none;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>🏢 Organization Registration</h1>
+        <p class="subtitle">Register your company and become the admin</p>
+
+        <div id="errorMsg" class="error-message"></div>
+        <div id="successMsg" class="success-message"></div>
+
+        <form id="orgRegisterForm">
+            <!-- Company Information -->
+            <div class="section-title">Company Information</div>
+            <div class="input-group">
+                <label>Company Name *</label>
+                <input type="text" id="companyName" placeholder="Acme Inc." required>
+            </div>
+            <div class="input-group">
+                <label>Company Email *</label>
+                <input type="email" id="companyEmail" placeholder="contact@acme.com" required>
+            </div>
+            <div class="input-group">
+                <label>Company Phone</label>
+                <input type="tel" id="companyPhone" placeholder="+1 234 567 8900">
+            </div>
+            <div class="input-group">
+                <label>Company Website</label>
+                <input type="url" id="companyWebsite" placeholder="https://acme.com">
+            </div>
+            <div class="input-group">
+                <label>Industry</label>
+                <input type="text" id="industry" placeholder="Technology, Healthcare, etc.">
+            </div>
+            <div class="input-group">
+                <label>Company Size</label>
+                <select id="companySize">
+                    <option value="1-10">1-10 employees</option>
+                    <option value="11-50">11-50 employees</option>
+                    <option value="51-200">51-200 employees</option>
+                    <option value="201-500">201-500 employees</option>
+                    <option value="500+">500+ employees</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Country</label>
+                <input type="text" id="country" placeholder="Country">
+            </div>
+            <div class="input-group">
+                <label>State / Province</label>
+                <input type="text" id="state" placeholder="State">
+            </div>
+            <div class="input-group">
+                <label>City</label>
+                <input type="text" id="city" placeholder="City">
+            </div>
+            <div class="input-group">
+                <label>Address</label>
+                <textarea id="address" rows="2" placeholder="Street address"></textarea>
+            </div>
+            <div class="input-group">
+                <label>Domain (for email verification) *</label>
+                <input type="text" id="domain" placeholder="acme.com" required>
+                <small>Employees must have emails ending with @acme.com</small>
+            </div>
+
+            <!-- Departments (Dynamic) -->
+            <div class="section-title">Departments (Optional)</div>
+            <div class="dynamic-section" id="departmentsSection">
+                <div id="departmentsList" class="dynamic-items"></div>
+                <button type="button" class="add-btn" id="addDepartmentBtn">+ Add Department</button>
+            </div>
+
+            <!-- Teams (Dynamic) -->
+            <div class="section-title">Teams (Optional)</div>
+            <div class="dynamic-section" id="teamsSection">
+                <div id="teamsList" class="dynamic-items"></div>
+                <button type="button" class="add-btn" id="addTeamBtn">+ Add Team</button>
+            </div>
+
+            <!-- Admin Details -->
+            <div class="section-title">Admin Account</div>
+            <div class="input-group">
+                <label>Full Name *</label>
+                <input type="text" id="adminName" placeholder="John Doe" required>
+            </div>
+            <div class="input-group">
+                <label>Work Email *</label>
+                <input type="email" id="adminEmail" placeholder="admin@acme.com" required>
+            </div>
+            <div class="input-group">
+                <label>Mobile Number</label>
+                <input type="tel" id="adminMobile" placeholder="+1 234 567 8900">
+            </div>
+            <div class="input-group">
+                <label>Role / Designation</label>
+                <input type="text" id="adminRole" placeholder="CEO, IT Manager, etc.">
+            </div>
+            <div class="input-group">
+                <label>Password *</label>
+                <input type="password" id="adminPassword" placeholder="Create a strong password" required>
+            </div>
+            <div class="input-group">
+                <label>Confirm Password *</label>
+                <input type="password" id="confirmPassword" placeholder="Repeat password" required>
+            </div>
+
+            <button type="submit" class="btn">Register Organization</button>
+        </form>
+
+        <div class="info-text">
+            Already have an account? <a href="/">Go to employee login</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Store dynamic items
+    let departments = [];
+    let teams = [];
+
+    // Helper: escape HTML
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // Render departments list
+    function renderDepartments() {
+        const container = document.getElementById('departmentsList');
+        container.innerHTML = '';
+        departments.forEach((dept, idx) => {
+            const div = document.createElement('div');
+            div.className = 'dynamic-item';
+            div.innerHTML = `
+                <input type="text" class="dept-name" data-idx="${idx}" value="${escapeHtml(dept.name)}" placeholder="Department name">
+                <input type="text" class="dept-desc" data-idx="${idx}" value="${escapeHtml(dept.description || '')}" placeholder="Description (optional)">
+                <button type="button" class="remove-item" data-idx="${idx}">Remove</button>
+            `;
+            container.appendChild(div);
+        });
+        // Attach event listeners for updates
+        document.querySelectorAll('.dept-name').forEach(inp => {
+            inp.addEventListener('change', (e) => {
+                const idx = parseInt(e.target.dataset.idx);
+                departments[idx].name = e.target.value;
+            });
+        });
+        document.querySelectorAll('.dept-desc').forEach(inp => {
+            inp.addEventListener('change', (e) => {
+                const idx = parseInt(e.target.dataset.idx);
+                departments[idx].description = e.target.value;
+            });
+        });
+        document.querySelectorAll('.remove-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(btn.dataset.idx);
+                departments.splice(idx, 1);
+                renderDepartments();
+                renderTeams(); // teams dropdown may need update
+            });
+        });
+    }
+
+    // Render teams list (department dropdown populated from departments)
+    function renderTeams() {
+        const container = document.getElementById('teamsList');
+        container.innerHTML = '';
+        teams.forEach((team, idx) => {
+            const div = document.createElement('div');
+            div.className = 'dynamic-item';
+            let deptOptions = '<option value="">Select Department</option>';
+            departments.forEach(d => {
+                deptOptions += `<option value="${escapeHtml(d.name)}" ${team.department_name === d.name ? 'selected' : ''}>${escapeHtml(d.name)}</option>`;
+            });
+            div.innerHTML = `
+                <input type="text" class="team-name" data-idx="${idx}" value="${escapeHtml(team.name)}" placeholder="Team name">
+                <select class="team-dept" data-idx="${idx}">${deptOptions}</select>
+                <input type="text" class="team-desc" data-idx="${idx}" value="${escapeHtml(team.description || '')}" placeholder="Description (optional)">
+                <button type="button" class="remove-item" data-idx="${idx}">Remove</button>
+            `;
+            container.appendChild(div);
+        });
+        // Attach listeners
+        document.querySelectorAll('.team-name').forEach(inp => {
+            inp.addEventListener('change', (e) => {
+                const idx = parseInt(e.target.dataset.idx);
+                teams[idx].name = e.target.value;
+            });
+        });
+        document.querySelectorAll('.team-dept').forEach(sel => {
+            sel.addEventListener('change', (e) => {
+                const idx = parseInt(e.target.dataset.idx);
+                teams[idx].department_name = e.target.value;
+            });
+        });
+        document.querySelectorAll('.team-desc').forEach(inp => {
+            inp.addEventListener('change', (e) => {
+                const idx = parseInt(e.target.dataset.idx);
+                teams[idx].description = e.target.value;
+            });
+        });
+        document.querySelectorAll('.remove-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(btn.dataset.idx);
+                teams.splice(idx, 1);
+                renderTeams();
+            });
+        });
+    }
+
+    document.getElementById('addDepartmentBtn').addEventListener('click', () => {
+        departments.push({ name: '', description: '' });
+        renderDepartments();
+        renderTeams(); // update team department dropdown
+    });
+
+    document.getElementById('addTeamBtn').addEventListener('click', () => {
+        teams.push({ name: '', department_name: '', description: '' });
+        renderTeams();
+    });
+
+    // Form submission
+    document.getElementById('orgRegisterForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Gather company info
+        const company_name = document.getElementById('companyName').value.trim();
+        const company_email = document.getElementById('companyEmail').value.trim();
+        const company_phone = document.getElementById('companyPhone').value.trim();
+        const company_website = document.getElementById('companyWebsite').value.trim();
+        const industry = document.getElementById('industry').value.trim();
+        const company_size = document.getElementById('companySize').value;
+        const country = document.getElementById('country').value.trim();
+        const state = document.getElementById('state').value.trim();
+        const city = document.getElementById('city').value.trim();
+        const address = document.getElementById('address').value.trim();
+        const domain = document.getElementById('domain').value.trim().toLowerCase();
+
+        const admin_name = document.getElementById('adminName').value.trim();
+        const admin_email = document.getElementById('adminEmail').value.trim();
+        const admin_mobile = document.getElementById('adminMobile').value.trim();
+        const admin_role = document.getElementById('adminRole').value.trim() || 'Admin';
+        const admin_password = document.getElementById('adminPassword').value;
+        const confirm_password = document.getElementById('confirmPassword').value;
+
+        const errorDiv = document.getElementById('errorMsg');
+        const successDiv = document.getElementById('successMsg');
+        errorDiv.style.display = 'none';
+        successDiv.style.display = 'none';
+
+        if (!company_name || !company_email || !domain || !admin_name || !admin_email || !admin_password) {
+            errorDiv.textContent = 'Please fill in all required fields (*).';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        if (admin_password !== confirm_password) {
+            errorDiv.textContent = 'Passwords do not match.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        if (admin_password.length < 6) {
+            errorDiv.textContent = 'Password must be at least 6 characters.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        if (!domain.includes('.')) {
+            errorDiv.textContent = 'Please enter a valid domain (e.g., acme.com).';
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Prepare departments and teams for payload (only non-empty names)
+        const departmentsPayload = departments.filter(d => d.name && d.name.trim()).map(d => ({
+            name: d.name.trim(),
+            description: d.description || null
+        }));
+        const teamsPayload = teams.filter(t => t.name && t.name.trim() && t.department_name && t.department_name.trim()).map(t => ({
+            name: t.name.trim(),
+            department_name: t.department_name.trim(),
+            description: t.description || null
+        }));
+
+        const payload = {
+            company_name,
+            company_email,
+            company_phone: company_phone || "",
+            company_website: company_website || "",
+            industry: industry || "",
+            company_size,
+            country: country || "",
+            state: state || "",
+            city: city || "",
+            address: address || "",
+            domain,
+            admin_name,
+            admin_email,
+            admin_mobile: admin_mobile || "",
+            admin_password,
+            admin_role: admin_role || "Admin",
+            confirm_password: admin_password,
+            departments: departmentsPayload,
+            teams: teamsPayload
+        };
+
+        try {
+            const res = await fetch('/api/auth/org/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                errorDiv.textContent = data.detail || 'Registration failed.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            // Success
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            window.location.href = '/start';
+        } catch (err) {
+            errorDiv.textContent = 'Network error. Please try again.';
+            errorDiv.style.display = 'block';
+            console.error(err);
+        }
+    });
+
+    // Initial render (empty lists)
+    renderDepartments();
+    renderTeams();
+</script>
+</body>
+</html>
