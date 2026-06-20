@@ -16,8 +16,6 @@ uv.lock
 .env
 
 #supporting system
-~/
-middleware
+~
 migrations
-uploads
-utils
+

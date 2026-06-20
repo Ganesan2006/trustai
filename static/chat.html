@@ -10,8 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
+        /* (Keep all existing CSS – same as previous version) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         :root {
             --bg-main: #f0f4f9;
             --bg-sidebar: #f8fafd;
@@ -33,7 +33,6 @@
             --shadow-float: 0 12px 32px rgba(0,0,0,0.1);
             --scrollbar-thumb: #cbd5e1;
         }
-
         [data-theme="dark"] {
             --bg-main: #131314;
             --bg-sidebar: #1e1f20;
@@ -55,538 +54,116 @@
             --shadow-float: 0 12px 32px rgba(0,0,0,0.6);
             --scrollbar-thumb: #4b5563;
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-main);
-            color: var(--text-main);
-            height: 100vh;
-            overflow: hidden;
-        }
-
+        body { font-family: 'Inter', sans-serif; background: var(--bg-main); color: var(--text-main); height: 100vh; overflow: hidden; }
         ::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; opacity: 0; transition: opacity 0.2s; }
         *:hover::-webkit-scrollbar-thumb { opacity: 1; }
-
         .app { display: flex; height: 100vh; position: relative; z-index: 10; width: 100%; }
-
-        /* Mobile Menu Toggle */
-        .mobile-menu-btn {
-            display: none;
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            z-index: 150;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            border-radius: 8px;
-            padding: 8px;
-            cursor: pointer;
-            box-shadow: var(--shadow-float);
-        }
-
-        /* SIDEBAR */
-        .sidebar {
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100vh;
-            width: 72px;
-            background: var(--bg-sidebar);
-            z-index: 100;
-            transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.3s ease;
-            overflow: hidden;
-            border-right: 1px solid var(--border-color);
-            white-space: nowrap;
-            display: flex;
-            flex-direction: column;
-        }
+        .mobile-menu-btn { display: none; position: absolute; top: 16px; left: 16px; z-index: 150; background: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; padding: 8px; cursor: pointer; box-shadow: var(--shadow-float); }
+        .sidebar { position: absolute; left: 0; top: 0; height: 100vh; width: 72px; background: var(--bg-sidebar); z-index: 100; transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.3s ease; overflow: hidden; border-right: 1px solid var(--border-color); white-space: nowrap; display: flex; flex-direction: column; }
         .sidebar:hover, .sidebar.mobile-open { width: 280px; box-shadow: var(--shadow-float); }
         .sidebar-header { padding: 20px 14px; display: flex; flex-direction: column; gap: 16px; margin-top: 40px;}
-        .new-chat-btn {
-            border: none;
-            background: var(--bg-hover);
-            color: var(--text-main);
-            padding: 12px;
-            border-radius: 50px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            width: max-content;
-            transition: 0.2s;
-        }
+        .new-chat-btn { border: none; background: var(--bg-hover); color: var(--text-main); padding: 12px; border-radius: 50px; cursor: pointer; display: flex; align-items: center; gap: 12px; width: max-content; transition: 0.2s; }
         .new-chat-btn:hover { background: var(--bg-active); color: var(--primary); transform: scale(0.98); }
         .new-chat-text { display: none; font-weight: 500; }
         .sidebar:hover .new-chat-text, .sidebar.mobile-open .new-chat-text { display: inline; }
-        
         .conversation-list { flex: 1; overflow-y: auto; padding: 0 10px; }
-        .conv-item {
-            padding: 12px;
-            border-radius: 12px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 250px;
-            margin-bottom: 4px;
-            transition: background 0.2s;
-        }
+        .conv-item { padding: 12px; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; width: 250px; margin-bottom: 4px; transition: background 0.2s; }
         .conv-item:hover { background: var(--bg-hover); }
         .conv-item.active { background: var(--bg-active); color: var(--primary); }
-        .conv-title {
-            font-size: 14px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 140px;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
+        .conv-title { font-size: 14px; overflow: hidden; text-overflow: ellipsis; width: 140px; opacity: 0; transition: opacity 0.2s; }
         .sidebar:hover .conv-title, .sidebar.mobile-open .conv-title { opacity: 1; }
         .conv-actions { opacity: 0; display: flex; gap: 4px; }
         .sidebar:hover .conv-item:hover .conv-actions, .sidebar.mobile-open .conv-item:hover .conv-actions { opacity: 1; }
-        .conv-actions button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--text-muted);
-            padding: 4px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-        }
+        .conv-actions button { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 6px; display: flex; align-items: center; }
         .conv-actions button:hover { background: var(--bg-panel); color: #ef4444; }
-        
-        .sidebar-footer {
-            margin-top: auto;
-            padding: 16px;
-            border-top: 1px solid transparent;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-        }
+        .sidebar-footer { margin-top: auto; padding: 16px; border-top: 1px solid transparent; display: flex; align-items: center; gap: 12px; cursor: pointer; }
         .sidebar:hover .sidebar-footer, .sidebar.mobile-open .sidebar-footer { border-top-color: var(--border-color); }
         .sidebar-footer:hover { background: var(--bg-hover); }
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), #667eea);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
+        .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #667eea); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; flex-shrink: 0; }
         .user-info { flex: 1; opacity: 0; }
         .sidebar:hover .user-info, .sidebar.mobile-open .user-info { opacity: 1; }
-
-        /* MAIN CHAT AREA */
-        .main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: transparent;
-            margin-left: 72px;
-            position: relative;
-            width: calc(100% - 72px);
-        }
-        .top-controls {
-            position: absolute;
-            top: 20px;
-            right: 24px;
-            z-index: 50;
-            display: flex;
-            gap: 12px;
-        }
-        .action-btn {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            border-radius: 50px;
-            padding: 10px 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 500;
-            font-size: 14px;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
+        .main { flex: 1; display: flex; flex-direction: column; background: transparent; margin-left: 72px; position: relative; width: calc(100% - 72px); }
+        .top-controls { position: absolute; top: 20px; right: 24px; z-index: 50; display: flex; gap: 12px; }
+        .action-btn { background: var(--bg-panel); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 50px; padding: 10px 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; transition: 0.2s; white-space: nowrap; }
         .action-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-float); }
-        
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 80px 20px 180px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 32px;
-            scroll-behavior: smooth;
-        }
-        .message {
-            width: 100%;
-            max-width: 850px;
-            display: flex;
-            gap: 16px;
-            animation: slideInUp 0.3s ease;
-        }
+        .chat-container { flex: 1; overflow-y: auto; padding: 80px 20px 180px; display: flex; flex-direction: column; align-items: center; gap: 32px; scroll-behavior: smooth; }
+        .message { width: 100%; max-width: 850px; display: flex; gap: 16px; animation: slideInUp 0.3s ease; }
         .user-message { justify-content: flex-end; }
         .bot-message { justify-content: flex-start; }
-        
-        .avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .bubble { 
-            max-width: 85%; 
-            word-wrap: break-word; 
-            overflow-wrap: anywhere;
-            position: relative; 
-        }
-        .user-message .bubble {
-            background: var(--user-bubble-bg);
-            padding: 14px 20px;
-            border-radius: 24px 24px 4px 24px;
-            font-size: 16px;
-            color: var(--text-main);
-        }
-        .bot-message .bubble {
-            background: transparent;
-            width: 100%;
-            padding: 6px 0;
-        }
-        .markdown-body {
-            color: var(--text-main);
-            font-size: 16px;
-            line-height: 1.6;
-        }
-        .markdown-body pre {
-            background: var(--code-bg);
-            padding: 16px;
-            border-radius: 16px;
-            overflow-x: auto;
-            border: 1px solid var(--border-color);
-            position: relative;
-            max-width: 100%;
-        }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--bg-panel); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .bubble { max-width: 85%; word-wrap: break-word; overflow-wrap: anywhere; position: relative; }
+        .user-message .bubble { background: var(--user-bubble-bg); padding: 14px 20px; border-radius: 24px 24px 4px 24px; font-size: 16px; color: var(--text-main); }
+        .bot-message .bubble { background: transparent; width: 100%; padding: 6px 0; }
+        .markdown-body { color: var(--text-main); font-size: 16px; line-height: 1.6; }
+        .markdown-body pre { background: var(--code-bg); padding: 16px; border-radius: 16px; overflow-x: auto; border: 1px solid var(--border-color); position: relative; max-width: 100%; }
         .markdown-body img { max-width: 100%; border-radius: 8px; }
-
-        /* Citation & Source styling */
-        .citation-number {
-            display: inline-block;
-            background: var(--bg-active);
-            color: var(--primary);
-            font-size: 0.7rem;
-            font-weight: 700;
-            border-radius: 20px;
-            padding: 0px 6px;
-            margin: 0 2px;
-            cursor: pointer;
-            transition: 0.2s;
-            text-decoration: none;
-            border: 1px solid transparent;
-            vertical-align: super;
-            line-height: 1;
-        }
-        .citation-number:hover {
-            background: var(--primary);
-            color: white;
-            transform: scale(1.05);
-        }
-        .sources-panel {
-            margin-top: 20px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 16px;
-            width: 100%;
-        }
-        .sources-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-        }
-        .source-card {
-            background: var(--bg-hover);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px;
-            transition: 0.2s;
-            cursor: pointer;
-            word-break: break-word;
-        }
+        .citation-number { display: inline-block; background: var(--bg-active); color: var(--primary); font-size: 0.7rem; font-weight: 700; border-radius: 20px; padding: 0px 6px; margin: 0 2px; cursor: pointer; transition: 0.2s; text-decoration: none; border: 1px solid transparent; vertical-align: super; line-height: 1; }
+        .citation-number:hover { background: var(--primary); color: white; transform: scale(1.05); }
+        .sources-panel { margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px; width: 100%; }
+        .sources-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 12px; }
+        .source-card { background: var(--bg-hover); border-radius: 12px; padding: 12px; margin-bottom: 10px; transition: 0.2s; cursor: pointer; word-break: break-word; }
         .source-card:hover { background: var(--bg-active); transform: translateX(4px); }
         .source-title { font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 14px;}
         .source-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
         .source-preview { font-size: 12px; color: var(--text-muted); margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border-color); }
-
         .feedback-buttons { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
-        .feedback-btn {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 40px;
-            padding: 6px 14px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-muted);
-            transition: 0.2s;
-        }
+        .feedback-btn { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 40px; padding: 6px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--text-muted); transition: 0.2s; }
         .feedback-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--primary); transform: scale(1.02); }
         .feedback-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        .copy-btn {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-size: 12px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 12px;
-            color: var(--text-muted);
-            transition: 0.2s;
-        }
+        .copy-btn { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--text-muted); transition: 0.2s; }
         .copy-btn:hover { background: var(--bg-hover); color: var(--primary); }
-
-        /* INPUT AREA */
-        .input-area {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 100%;
-            max-width: 860px;
-            padding: 0 20px;
-            transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            pointer-events: none;
-        }
-        body.chat-active .input-area {
-            top: auto;
-            bottom: 30px;
-            transform: translate(-50%, 0);
-        }
-        .greeting-text {
-            font-family: 'Google Sans', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 500;
-            margin-bottom: 2rem;
-            text-align: center;
-            pointer-events: auto;
-            background: linear-gradient(90deg, var(--primary), #a8c7fa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        body.chat-active .greeting-text {
-            opacity: 0;
-            transform: translateY(-20px);
-            pointer-events: none;
-            position: absolute;
-        }
+        .input-area { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 100%; max-width: 860px; padding: 0 20px; transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+        body.chat-active .input-area { top: auto; bottom: 30px; transform: translate(-50%, 0); }
+        .greeting-text { font-family: 'Google Sans', sans-serif; font-size: 2.5rem; font-weight: 500; margin-bottom: 2rem; text-align: center; pointer-events: auto; background: linear-gradient(90deg, var(--primary), #a8c7fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        body.chat-active .greeting-text { opacity: 0; transform: translateY(-20px); pointer-events: none; position: absolute; }
         .bottom-container { width: 100%; pointer-events: auto; }
-        .input-wrapper {
-            background: var(--bg-input);
-            border-radius: 32px;
-            display: flex;
-            align-items: flex-end;
-            gap: 12px;
-            padding: 12px 16px;
-            box-shadow: var(--shadow-float);
-            border: 1px solid var(--border-color);
-            width: 100%;
-        }
-        .chat-input {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: var(--text-main);
-            padding: 10px 4px;
-            resize: none;
-            outline: none;
-            font-size: 16px;
-            font-family: 'Inter', sans-serif;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        .send-btn, .file-upload-btn, .scope-toggle-btn {
-            width: 40px;
-            height: 40px;
-            border: none;
-            border-radius: 50%;
-            background: transparent;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-            flex-shrink: 0;
-        }
+        .input-wrapper { background: var(--bg-input); border-radius: 32px; display: flex; align-items: flex-end; gap: 12px; padding: 12px 16px; box-shadow: var(--shadow-float); border: 1px solid var(--border-color); width: 100%; }
+        .chat-input { flex: 1; background: transparent; border: none; color: var(--text-main); padding: 10px 4px; resize: none; outline: none; font-size: 16px; font-family: 'Inter', sans-serif; max-height: 150px; overflow-y: auto; }
+        .send-btn, .file-upload-btn, .scope-toggle-btn { width: 40px; height: 40px; border: none; border-radius: 50%; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-shrink: 0; }
         .send-btn { background: var(--text-main); color: var(--bg-main); }
         .send-btn:disabled { background: var(--bg-hover); cursor: not-allowed; }
-        
-        .search-scope-panel, .file-manager-panel {
-            background: var(--bg-panel);
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-            padding: 16px;
-            margin-bottom: 12px;
-            display: none;
-            box-shadow: var(--shadow-float);
-            width: 100%;
-        }
+        .search-scope-panel, .file-manager-panel { background: var(--bg-panel); border-radius: 20px; border: 1px solid var(--border-color); padding: 16px; margin-bottom: 12px; display: none; box-shadow: var(--shadow-float); width: 100%; }
         .scope-options { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-        .scope-label {
-            padding: 6px 16px;
-            background: var(--bg-hover);
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
+        .scope-label { padding: 6px 16px; background: var(--bg-hover); border-radius: 40px; cursor: pointer; font-size: 13px; transition: 0.2s; white-space: nowrap; }
         .scope-radio:checked + .scope-label { background: var(--primary); color: white; }
-        .metadata-select {
-            background: var(--bg-input);
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 8px 12px;
-            width: 100%;
-        }
-        
-        /* Toast & Modals */
-        #toastContainer {
-            position: fixed;
-            top: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .toast {
-            background: var(--toast-bg);
-            color: var(--toast-text);
-            padding: 12px 24px;
-            border-radius: 50px;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-float);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 500;
-            animation: slideInDown 0.3s ease;
-            white-space: nowrap;
-        }
-        .overlay-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--modal-bg);
-            backdrop-filter: blur(8px);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-        .explorer-content {
-            background: var(--modal-content);
-            width: 90%;
-            max-width: 1100px;
-            max-height: 85vh;
-            border-radius: 24px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-        }
+        .metadata-select { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px 12px; width: 100%; }
+        #toastContainer { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 12px; }
+        .toast { background: var(--toast-bg); color: var(--toast-text); padding: 12px 24px; border-radius: 50px; border: 1px solid var(--border-color); box-shadow: var(--shadow-float); display: flex; align-items: center; gap: 12px; font-weight: 500; animation: slideInDown 0.3s ease; white-space: nowrap; }
+        .overlay-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); backdrop-filter: blur(8px); z-index: 2000; justify-content: center; align-items: center; }
+        .explorer-content { background: var(--modal-content); width: 90%; max-width: 1100px; max-height: 85vh; border-radius: 24px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-color); }
         .explorer-header { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
         .close-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; display: flex; }
         .close-btn:hover { color: #ef4444; }
         .file-filter-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-        .filter-tab {
-            background: var(--bg-hover);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-muted);
-            transition: 0.2s;
-        }
+        .filter-tab { background: var(--bg-hover); border: none; padding: 8px 16px; border-radius: 40px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-muted); transition: 0.2s; }
         .filter-tab.active { background: var(--primary); color: white; }
         .explorer-sub-filters { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
         .file-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-        .drive-card {
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px;
-            cursor: pointer;
-            transition: 0.2s;
-            overflow: hidden;
-        }
+        .drive-card { background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; cursor: pointer; transition: 0.2s; overflow: hidden; }
         .drive-card:hover { transform: translateY(-4px); border-color: var(--primary); box-shadow: var(--shadow-float); }
         .access-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; background: var(--bg-hover); color: var(--text-muted); }
-        
         .typing-indicator .bubble { display: flex; gap: 6px; padding: 16px 0; }
         .dot { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; animation: pulse 1.4s infinite; opacity: 0.5; }
-        
         @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideInDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes pulse { 0%, 100% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } }
-
-        /* Responsive Styles */
         @media (max-width: 768px) {
             .mobile-menu-btn { display: block; }
             .main { margin-left: 0; width: 100%; }
-            .sidebar { 
-                transform: translateX(-100%); 
-                width: 280px; 
-                box-shadow: var(--shadow-float);
-            }
+            .sidebar { transform: translateX(-100%); width: 280px; box-shadow: var(--shadow-float); }
             .sidebar.mobile-open { transform: translateX(0); }
             .sidebar-header { margin-top: 60px; }
-            
             .top-controls { top: 16px; right: 16px; }
-            .action-btn span:last-child { display: none; } /* Hide text on mobile for buttons */
+            .action-btn span:last-child { display: none; }
             .action-btn { padding: 8px; border-radius: 50%; }
-            
             .chat-container { padding: 80px 16px 160px; }
             .message { gap: 8px; }
             .user-message .bubble, .bot-message .bubble { max-width: 95%; font-size: 15px; }
-            
             .greeting-text { font-size: 1.8rem; }
             .input-area { padding: 0 12px; bottom: 15px; }
             .input-wrapper { padding: 8px 12px; }
-            
             .explorer-content { width: 95%; max-height: 90vh; }
             .file-container { grid-template-columns: 1fr; }
         }
@@ -595,186 +172,88 @@
 <body>
 <div class="app">
     <div id="toastContainer"></div>
-    
-    <!-- Mobile Menu Toggle -->
-    <button class="mobile-menu-btn" id="mobileMenuBtn">
-        <span class="material-symbols-outlined">menu</span>
-    </button>
-
-    <!-- Sidebar -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn"><span class="material-symbols-outlined">menu</span></button>
     <div class="sidebar" id="appSidebar">
         <div class="sidebar-header">
-            <button class="new-chat-btn" id="newChatBtn">
-                <span class="material-symbols-outlined">add</span>
-                <span class="new-chat-text">New Chat</span>
-            </button>
+            <button class="new-chat-btn" id="newChatBtn"><span class="material-symbols-outlined">add</span><span class="new-chat-text">New Chat</span></button>
         </div>
         <div class="conversation-list" id="convList"></div>
         <div class="sidebar-footer" id="sidebarProfileBtn">
             <div class="user-avatar" id="userAvatar"></div>
-            <div class="user-info">
-                <div class="user-name" id="sidebarUserName"></div>
-                <div class="user-email" id="sidebarUserEmail"></div>
-            </div>
+            <div class="user-info"><div class="user-name" id="sidebarUserName"></div><div class="user-email" id="sidebarUserEmail"></div></div>
         </div>
     </div>
-
-    <!-- Main Chat Area -->
     <div class="main" id="mainArea">
-        <div class="top-controls">
-            <button id="openExplorerBtn" class="action-btn" title="My Files">
-                <span class="material-symbols-outlined">folder_open</span>
-                <span>My Files</span>
-            </button>
-        </div>
-
-        <div class="chat-container" id="chatContainer">
-            <div id="emptyState" style="text-align: center; margin-top: 60px;">
-                <h1 style="font-family:'Google Sans'; font-size: 24px;">✨ Ask with inline citations</h1>
-                <p style="color: var(--text-muted); margin-top: 8px;">Upload documents and get source‑linked answers</p>
-            </div>
-        </div>
-
+        <div class="top-controls"><button id="openExplorerBtn" class="action-btn" title="My Files"><span class="material-symbols-outlined">folder_open</span><span>My Files</span></button></div>
+        <div class="chat-container" id="chatContainer"><div id="emptyState" style="text-align: center; margin-top: 60px;"><h1 style="font-family:'Google Sans'; font-size: 24px;">✨ Ask with inline citations</h1><p style="color: var(--text-muted); margin-top: 8px;">Upload documents and get source‑linked answers</p></div></div>
         <div class="input-area" id="inputArea">
             <h1 class="greeting-text" id="greetingText">Hi there. What's on your mind?</h1>
             <div class="bottom-container">
-                <!-- Search Scope Panel -->
-                <div id="searchScopePanel" class="search-scope-panel">
-                    <div style="font-size:12px; font-weight:600; margin-bottom:12px;">🔍 Search Scope</div>
+                <div id="searchScopePanel" class="search-scope-panel"><div style="font-size:12px; font-weight:600; margin-bottom:12px;">🔍 Search Scope</div>
                     <div class="scope-options">
-                        <input type="radio" name="scopeType" id="scopeCompany" value="company" class="scope-radio" checked hidden>
-                        <label for="scopeCompany" class="scope-label">Company</label>
-                        <input type="radio" name="scopeType" id="scopeDepartment" value="department" class="scope-radio" hidden>
-                        <label for="scopeDepartment" class="scope-label">Department</label>
-                        <input type="radio" name="scopeType" id="scopeTeam" value="team" class="scope-radio" hidden>
-                        <label for="scopeTeam" class="scope-label">Team</label>
-                        <input type="radio" name="scopeType" id="scopePrivate" value="private" class="scope-radio" hidden>
-                        <label for="scopePrivate" class="scope-label">Personal</label>
+                        <input type="radio" name="scopeType" id="scopeCompany" value="company" class="scope-radio" checked hidden><label for="scopeCompany" class="scope-label">Company</label>
+                        <input type="radio" name="scopeType" id="scopeDepartment" value="department" class="scope-radio" hidden><label for="scopeDepartment" class="scope-label">Department</label>
+                        <input type="radio" name="scopeType" id="scopeTeam" value="team" class="scope-radio" hidden><label for="scopeTeam" class="scope-label">Team</label>
+                        <input type="radio" name="scopeType" id="scopePrivate" value="private" class="scope-radio" hidden><label for="scopePrivate" class="scope-label">Personal</label>
                     </div>
-                    <div id="scopeDepartmentContainer" style="display:none; margin-top:12px;">
-                        <select id="scopeDepartmentSelect" class="metadata-select" multiple size="2"></select>
-                    </div>
-                    <div id="scopeTeamContainer" style="display:none; margin-top:12px;">
-                        <select id="scopeTeamSelect" class="metadata-select" multiple size="2"></select>
-                    </div>
-                    <div id="scopePrivateContainer" style="display:none; margin-top:12px;">
-                        <input type="email" id="scopeUserEmail" class="metadata-select" placeholder="user@company.com">
-                    </div>
+                    <div id="scopeDepartmentContainer" style="display:none; margin-top:12px;"><select id="scopeDepartmentSelect" class="metadata-select" multiple size="2"></select></div>
+                    <div id="scopeTeamContainer" style="display:none; margin-top:12px;"><select id="scopeTeamSelect" class="metadata-select" multiple size="2"></select></div>
+                    <div id="scopePrivateContainer" style="display:none; margin-top:12px;"><input type="email" id="scopeUserEmail" class="metadata-select" placeholder="user@company.com"></div>
                     <div id="scopeAutoInfo" style="font-size:12px; color:var(--primary); margin-top:10px;"></div>
                 </div>
-
-                <!-- File Upload Panel -->
+                <!-- Enhanced File Upload Panel with role‑based selectors -->
                 <div class="file-manager-panel" id="fileManagerContainer">
-                    <div style="font-size:12px; font-weight:600; margin-bottom:8px;">📎 Pending Files</div>
+                    <div style="font-size:12px; font-weight:600; margin-bottom:8px;">📎 Upload Files</div>
                     <div class="file-upload-list" id="fileUploadList" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;"></div>
-                    <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-                        <select id="uploadScopeSelect" class="metadata-select" style="width:auto; flex: 1;">
-                            <option value="private">Personal</option>
-                            <option value="team">Team</option>
-                            <option value="department">Department</option>
-                            <option value="company" selected>Company</option>
-                        </select>
+                    <!-- Upload scope radio buttons -->
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:12px; font-weight:500; margin-bottom:6px;">Access Level:</div>
+                        <div class="scope-options" id="uploadScopeOptions">
+                            <!-- Dynamically filled by JS based on user role -->
+                        </div>
+                    </div>
+                    <!-- Department selector (only for admin when department scope selected) -->
+                    <div id="uploadDepartmentContainer" style="display:none; margin-bottom:12px;">
+                        <label style="font-size:12px; display:block; margin-bottom:4px;">Select Department:</label>
+                        <select id="uploadDepartmentSelect" class="metadata-select"><option value="">-- Select Department --</option></select>
+                    </div>
+                    <!-- Team selector (for admin/department manager when team scope selected) -->
+                    <div id="uploadTeamContainer" style="display:none; margin-bottom:12px;">
+                        <label style="font-size:12px; display:block; margin-bottom:4px;">Select Team:</label>
+                        <select id="uploadTeamSelect" class="metadata-select"><option value="">-- Select Team --</option></select>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:12px; flex-wrap:wrap;">
                         <button id="executeUploadBtn" class="action-btn" style="padding:6px 16px;">Upload</button>
                     </div>
                 </div>
-
                 <div class="input-wrapper">
-                    <button class="file-upload-btn" id="fileUploadBtn" title="Attach Document">
-                        <span class="material-symbols-outlined">attach_file</span>
-                    </button>
+                    <button class="file-upload-btn" id="fileUploadBtn" title="Attach Document"><span class="material-symbols-outlined">attach_file</span></button>
                     <input type="file" id="pdfInput" accept=".pdf,.docx,.txt,.md" multiple hidden />
                     <textarea class="chat-input" id="chatInput" rows="1" placeholder="Ask TrustAI... (citations appear as [1], [2])"></textarea>
-                    <button class="scope-toggle-btn" id="scopeToggleBtn" title="Search Filters">
-                        <span class="material-symbols-outlined">tune</span>
-                    </button>
-                    <button class="send-btn" id="sendBtn" disabled>
-                        <span class="material-symbols-outlined">arrow_upward</span>
-                    </button>
+                    <button class="scope-toggle-btn" id="scopeToggleBtn" title="Search Filters"><span class="material-symbols-outlined">tune</span></button>
+                    <button class="send-btn" id="sendBtn" disabled><span class="material-symbols-outlined">arrow_upward</span></button>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 <!-- File Explorer Modal -->
-<div id="driveExplorerModal" class="overlay-modal">
-    <div class="explorer-content">
-        <div class="explorer-header">
-            <h2><span class="material-symbols-outlined" style="vertical-align: middle;">cloud</span> Accessible Files</h2>
-            <button id="closeExplorerBtn" class="close-btn"><span class="material-symbols-outlined">close</span></button>
-        </div>
-        <div class="explorer-body" style="padding: 20px; overflow-y: auto; flex: 1;">
-            <div class="file-filter-tabs" id="fileFilterTabs">
-                <button class="filter-tab active" data-filter="all">All</button>
-                <button class="filter-tab" data-filter="company">Company</button>
-                <button class="filter-tab" data-filter="department">Department</button>
-                <button class="filter-tab" data-filter="team">Team</button>
-                <button class="filter-tab" data-filter="private">Personal</button>
-            </div>
-            <div id="explorerSubFilters" class="explorer-sub-filters" style="display: none;">
-                <select id="explorerDynamicFilter" class="metadata-select"></select>
-            </div>
-            <div id="driveFileContainer" class="file-container"></div>
-        </div>
-    </div>
-</div>
-
-<!-- Document Viewer Modal (Fixed for responsiveness and iframe rendering) -->
-<div id="documentViewerModal" class="overlay-modal">
-    <div class="explorer-content" style="width:95%; max-width:1200px; height:90vh; display: flex; flex-direction: column;">
-        <div class="explorer-header">
-            <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
-                <h2 id="viewerFileName" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 18px;">Document Viewer</h2>
-            </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <a id="viewerNewTabBtn" href="#" target="_blank" class="action-btn" style="padding: 6px 12px; font-size: 12px; text-decoration: none; display: flex;">
-                    <span class="material-symbols-outlined" style="font-size: 16px;">open_in_new</span> 
-                    <span>Open</span>
-                </a>
-                <button id="closeViewerBtn" class="close-btn"><span class="material-symbols-outlined">close</span></button>
-            </div>
-        </div>
-        <div class="explorer-body" style="padding:0; flex: 1; display: flex; flex-direction: column; background: #fff;">
-            <!-- Removed Sandbox to allow native PDF viewers -->
-            <iframe id="documentIframe" style="width:100%; height:100%; border:none; flex: 1;" allowfullscreen></iframe>
-        </div>
-    </div>
-</div>
-
+<div id="driveExplorerModal" class="overlay-modal"><div class="explorer-content"><div class="explorer-header"><h2><span class="material-symbols-outlined" style="vertical-align: middle;">cloud</span> Accessible Files</h2><button id="closeExplorerBtn" class="close-btn"><span class="material-symbols-outlined">close</span></button></div><div class="explorer-body" style="padding: 20px; overflow-y: auto; flex: 1;"><div class="file-filter-tabs" id="fileFilterTabs"><button class="filter-tab active" data-filter="all">All</button><button class="filter-tab" data-filter="company">Company</button><button class="filter-tab" data-filter="department">Department</button><button class="filter-tab" data-filter="team">Team</button><button class="filter-tab" data-filter="private">Personal</button></div><div id="explorerSubFilters" class="explorer-sub-filters" style="display: none;"><select id="explorerDynamicFilter" class="metadata-select"></select></div><div id="driveFileContainer" class="file-container"></div></div></div></div>
+<!-- Document Viewer Modal -->
+<div id="documentViewerModal" class="overlay-modal"><div class="explorer-content" style="width:95%; max-width:1200px; height:90vh; display: flex; flex-direction: column;"><div class="explorer-header"><div style="display: flex; align-items: center; gap: 8px; overflow: hidden;"><h2 id="viewerFileName" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 18px;">Document Viewer</h2></div><div style="display: flex; gap: 12px; align-items: center;"><a id="viewerNewTabBtn" href="#" target="_blank" class="action-btn" style="padding: 6px 12px; font-size: 12px; text-decoration: none; display: flex;"><span class="material-symbols-outlined" style="font-size: 16px;">open_in_new</span><span>Open</span></a><button id="closeViewerBtn" class="close-btn"><span class="material-symbols-outlined">close</span></button></div></div><div class="explorer-body" style="padding:0; flex: 1; display: flex; flex-direction: column; background: #fff;"><iframe id="documentIframe" style="width:100%; height:100%; border:none; flex: 1;" allowfullscreen></iframe></div></div></div>
 <!-- Profile Modal -->
-<div id="profileDropdownModal" class="overlay-modal">
-    <div class="explorer-content" style="width:320px; height: auto; max-height: 90vh;">
-        <div class="explorer-header">
-            <h2>Profile Settings</h2>
-            <button id="closeProfileDropdown" class="close-btn"><span class="material-symbols-outlined">close</span></button>
-        </div>
-        <div class="explorer-body" style="padding:20px; overflow-y: auto;">
-            <div><strong>Name:</strong> <span id="dropdownUserName"></span></div>
-            <div style="margin-top:12px; word-break: break-all;"><strong>Email:</strong> <span id="dropdownUserEmail"></span></div>
-            <div style="margin-top:12px;"><strong>Theme:</strong>
-                <select id="themeSelectDropdown" style="margin-left:8px; background:var(--bg-input); color:var(--text-main); border: 1px solid var(--border-color); border-radius:8px; padding:6px; width: 100%; margin-top: 8px;">
-                    <option value="dark">Dark</option>
-                    <option value="light">Light</option>
-                </select>
-            </div>
-            <button id="saveProfileDropdownBtn" style="margin-top:20px; width:100%; justify-content: center;" class="action-btn">Save Settings</button>
-            <button id="logoutBtn" style="margin-top:12px; width:100%; justify-content: center; background:#ef4444; color:white; border:none;" class="action-btn">Log Out</button>
-        </div>
-    </div>
-</div>
-
+<div id="profileDropdownModal" class="overlay-modal"><div class="explorer-content" style="width:320px; height: auto; max-height: 90vh;"><div class="explorer-header"><h2>Profile Settings</h2><button id="closeProfileDropdown" class="close-btn"><span class="material-symbols-outlined">close</span></button></div><div class="explorer-body" style="padding:20px; overflow-y: auto;"><div><strong>Name:</strong> <span id="dropdownUserName"></span></div><div style="margin-top:12px; word-break: break-all;"><strong>Email:</strong> <span id="dropdownUserEmail"></span></div><div style="margin-top:12px;"><strong>Theme:</strong><select id="themeSelectDropdown" style="margin-left:8px; background:var(--bg-input); color:var(--text-main); border: 1px solid var(--border-color); border-radius:8px; padding:6px; width: 100%; margin-top: 8px;"><option value="dark">Dark</option><option value="light">Light</option></select></div><button id="saveProfileDropdownBtn" style="margin-top:20px; width:100%; justify-content: center;" class="action-btn">Save Settings</button><button id="logoutBtn" style="margin-top:12px; width:100%; justify-content: center; background:#ef4444; color:white; border:none;" class="action-btn">Log Out</button></div></div></div>
 <script>
     (function () {
         // ---------- Axios Setup ----------
-        const api = axios.create({
-            baseURL: '',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        const api = axios.create({ baseURL: '' });
+        api.interceptors.request.use(config => {
+            const token = localStorage.getItem('access_token');
+            if (token) config.headers.Authorization = `Bearer ${token}`;
+            return config;
         });
         api.interceptors.response.use(res => res, error => {
-            if (error.response?.status === 401) {
-                localStorage.clear();
-                window.location.href = '/';
-            }
+            if (error.response?.status === 401) { localStorage.clear(); window.location.href = '/'; }
             showToast(error.response?.data?.detail || 'Request failed', 'error');
             return Promise.reject(error);
         });
@@ -786,6 +265,7 @@
         let allAccessibleFiles = [];
         let systemData = { departments: [], teams: [] };
         let pendingFiles = [];
+        let uploadTargets = { departments: [], teams: [] };   // from /api/files/upload-targets
 
         // ---------- Helper Functions ----------
         function showToast(message, type = 'success') {
@@ -796,40 +276,12 @@
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
-        }
-
+        function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m)); }
         async function copyToClipboard(text) {
-            try {
-                await navigator.clipboard.writeText(text);
-                showToast('Copied to clipboard', 'success');
-            } catch (err) {
-                // Fallback for older browsers
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    showToast('Copied to clipboard', 'success');
-                } catch (err) {
-                    showToast('Copy failed', 'error');
-                }
-                document.body.removeChild(textArea);
-            }
+            try { await navigator.clipboard.writeText(text); showToast('Copied to clipboard', 'success'); } catch (err) { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); showToast('Copied to clipboard', 'success'); } catch (e) { showToast('Copy failed', 'error'); } document.body.removeChild(ta); }
         }
-
-        function applyTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('trustai_theme', theme);
-            const selector = document.getElementById('themeSelectDropdown');
-            if (selector) selector.value = theme;
-        }
-        const savedTheme = localStorage.getItem('trustai_theme') || 'dark';
-        applyTheme(savedTheme);
+        function applyTheme(theme) { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('trustai_theme', theme); const selector = document.getElementById('themeSelectDropdown'); if (selector) selector.value = theme; }
+        const savedTheme = localStorage.getItem('trustai_theme') || 'dark'; applyTheme(savedTheme);
 
         // ---------- User & System Data ----------
         async function fetchCurrentUser() {
@@ -842,29 +294,113 @@
                 document.getElementById('dropdownUserName').innerText = currentUser.name;
                 document.getElementById('dropdownUserEmail').innerText = currentUser.email;
                 document.getElementById('greetingText').innerText = `Hi ${currentUser.name.split(' ')[0]}, what's on your mind?`;
-            } catch (e) {
-                console.log("Mocking user for UI testing");
-                // Mock user for UI preview purposes if backend is unavailable
-                currentUser = { name: "User", email: "user@example.com", role: "employee" };
-                document.getElementById('greetingText').innerText = `Hi User, what's on your mind?`;
-            }
+            } catch (e) { console.log("Mocking user for UI testing"); currentUser = { name: "User", email: "user@example.com", role: "employee" }; document.getElementById('greetingText').innerText = `Hi User, what's on your mind?`; }
         }
-
         async function loadSystemData() {
             try {
                 const [depts, teams] = await Promise.all([api.get('/admin/departments'), api.get('/admin/teams')]);
                 systemData.departments = depts.data;
                 systemData.teams = teams.data;
                 const deptSelect = document.getElementById('scopeDepartmentSelect');
-                deptSelect.innerHTML = '';
-                systemData.departments.forEach(d => deptSelect.innerHTML += `<option value="${d.id}">${escapeHtml(d.name)}</option>`);
+                deptSelect.innerHTML = ''; systemData.departments.forEach(d => deptSelect.innerHTML += `<option value="${d.id}">${escapeHtml(d.name)}</option>`);
                 const teamSelect = document.getElementById('scopeTeamSelect');
-                teamSelect.innerHTML = '';
-                systemData.teams.forEach(t => teamSelect.innerHTML += `<option value="${t.id}">${escapeHtml(t.name)}</option>`);
+                teamSelect.innerHTML = ''; systemData.teams.forEach(t => teamSelect.innerHTML += `<option value="${t.id}">${escapeHtml(t.name)}</option>`);
             } catch (e) { }
         }
+        async function loadUploadTargets() {
+            try {
+                const res = await api.get('/api/files/upload-targets');
+                uploadTargets = res.data;
+                // populate department and team selects for upload
+                const deptSelect = document.getElementById('uploadDepartmentSelect');
+                deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
+                (uploadTargets.departments || []).forEach(d => deptSelect.innerHTML += `<option value="${d.id}">${escapeHtml(d.name)}</option>`);
+                const teamSelect = document.getElementById('uploadTeamSelect');
+                teamSelect.innerHTML = '<option value="">-- Select Team --</option>';
+                (uploadTargets.teams || []).forEach(t => teamSelect.innerHTML += `<option value="${t.id}">${escapeHtml(t.name)}</option>`);
+            } catch (e) { console.warn('Failed to load upload targets', e); }
+        }
 
-        // ---------- Scope UI ----------
+        // ---------- Build file upload scope options based on role ----------
+        function buildUploadScopeOptions() {
+            const role = currentUser?.role || 'employee';
+            const container = document.getElementById('uploadScopeOptions');
+            container.innerHTML = '';
+            const options = [];
+            // Always show Company
+            options.push({ value: 'company', label: '🏢 Company' });
+            if (role === 'org_admin') {
+                options.push({ value: 'department', label: '🏛️ Department' });
+                options.push({ value: 'team', label: '👥 Team' });
+                options.push({ value: 'private', label: '🔒 Personal' });
+            } else if (role === 'department_manager') {
+                options.push({ value: 'department', label: `🏛️ Department (${currentUser.department?.name || 'Your Dept'})` });
+                options.push({ value: 'team', label: '👥 Team' });
+                options.push({ value: 'private', label: '🔒 Personal' });
+            } else { // team_lead or employee
+                options.push({ value: 'department', label: `🏛️ Department (${currentUser.department?.name || 'My Dept'})` });
+                options.push({ value: 'team', label: `👥 Team (${currentUser.team?.name || 'My Team'})` });
+                options.push({ value: 'private', label: '🔒 Personal' });
+            }
+            options.forEach(opt => {
+                const radioId = `uploadScope_${opt.value}`;
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'uploadScope';
+                    radio.value = opt.value;
+                radio.id = radioId;
+                radio.className = 'scope-radio';
+                radio.hidden = true;
+                const label = document.createElement('label');
+                label.htmlFor = radioId;
+                label.className = 'scope-label';
+                label.innerText = opt.label;
+                container.appendChild(radio);
+                container.appendChild(label);
+            });
+            // add change event listener to the first radio (or attach listener to container)
+            document.querySelectorAll('input[name="uploadScope"]').forEach(r => r.addEventListener('change', onUploadScopeChange));
+            // default select company
+            const companyRadio = document.querySelector('input[name="uploadScope"][value="company"]');
+            if (companyRadio) companyRadio.checked = true;
+            onUploadScopeChange();
+        }
+        function onUploadScopeChange() {
+            const selected = document.querySelector('input[name="uploadScope"]:checked')?.value;
+            const role = currentUser?.role || 'employee';
+            const deptContainer = document.getElementById('uploadDepartmentContainer');
+            const teamContainer = document.getElementById('uploadTeamContainer');
+            deptContainer.style.display = 'none';
+            teamContainer.style.display = 'none';
+            if (selected === 'department') {
+                if (role === 'org_admin') {
+                    deptContainer.style.display = 'block';
+                } else if (role === 'department_manager') {
+                    // auto-select own department, no dropdown needed
+                }
+            } else if (selected === 'team') {
+                if (role === 'org_admin') {
+                    teamContainer.style.display = 'block';
+                } else if (role === 'department_manager') {
+                    teamContainer.style.display = 'block';
+                } else {
+                    // team_lead/employee: auto-assign own team, no dropdown
+                }
+            }
+            // For department_manager, also populate team select with teams under their department
+            if (role === 'department_manager' && selected === 'team') {
+                const teamSelect = document.getElementById('uploadTeamSelect');
+                if (currentUser.department_id) {
+                    const allowedTeams = uploadTargets.teams.filter(t => t.department_id === currentUser.department_id);
+                    teamSelect.innerHTML = '<option value="">-- Select Team --</option>';
+                    allowedTeams.forEach(t => teamSelect.innerHTML += `<option value="${t.id}">${escapeHtml(t.name)}</option>`);
+                }
+            } else if (role === 'org_admin' && selected === 'team') {
+                // teams already populated from uploadTargets
+            }
+        }
+
+        // ---------- Scope UI for search (unchanged) ----------
         function updateScopeUI() {
             const scopeEl = document.querySelector('input[name="scopeType"]:checked');
             if(!scopeEl) return;
@@ -885,9 +421,7 @@
                     document.getElementById('scopeTeamContainer').style.display = 'block';
                     const teamSelect = document.getElementById('scopeTeamSelect');
                     teamSelect.innerHTML = '';
-                    systemData.teams.filter(t => t.department_id === currentUser.department_id).forEach(t => {
-                        teamSelect.innerHTML += `<option value="${t.id}">${escapeHtml(t.name)}</option>`;
-                    });
+                    systemData.teams.filter(t => t.department_id === currentUser.department_id).forEach(t => { teamSelect.innerHTML += `<option value="${t.id}">${escapeHtml(t.name)}</option>`; });
                 }
                 if (scope === 'private') autoInfo.innerHTML = `🔒 Your personal files only.`;
             } else {
@@ -896,7 +430,6 @@
                 if (scope === 'private') autoInfo.innerHTML = `🔒 Your personal files.`;
             }
         }
-
         function getSearchScopeFromUI() {
             const scopeEl = document.querySelector('input[name="scopeType"]:checked');
             if(!scopeEl) return { type: 'company' };
@@ -916,603 +449,110 @@
             }
             return { type: scope, department_ids, team_ids, user_emails };
         }
-
-        function saveScopeForConversation(convId, scope) {
-            if (!convId) return;
-            localStorage.setItem(`chat_scope_${convId}`, JSON.stringify(scope));
-        }
-
-        function loadScopeForConversation(convId) {
-            const saved = localStorage.getItem(`chat_scope_${convId}`);
-            if (saved) try { return JSON.parse(saved); } catch (e) { return null; }
-            return null;
-        }
-
-        function applyScopeToUI(scope) {
-            if (!scope) return;
-            const radio = document.querySelector(`input[name="scopeType"][value="${scope.type}"]`);
-            if (radio) radio.checked = true;
-            updateScopeUI();
-            setTimeout(() => {
-                if (scope.type === 'department' && scope.department_ids) {
-                    const deptSelect = document.getElementById('scopeDepartmentSelect');
-                    Array.from(deptSelect.options).forEach(opt => { if (scope.department_ids.includes(parseInt(opt.value))) opt.selected = true; });
-                }
-                if (scope.type === 'team' && scope.team_ids) {
-                    const teamSelect = document.getElementById('scopeTeamSelect');
-                    Array.from(teamSelect.options).forEach(opt => { if (scope.team_ids.includes(parseInt(opt.value))) opt.selected = true; });
-                }
-                if (scope.type === 'private' && scope.user_emails) {
-                    document.getElementById('scopeUserEmail').value = scope.user_emails[0] || '';
-                }
-            }, 100);
-        }
+        function saveScopeForConversation(convId, scope) { if (!convId) return; localStorage.setItem(`chat_scope_${convId}`, JSON.stringify(scope)); }
+        function loadScopeForConversation(convId) { const saved = localStorage.getItem(`chat_scope_${convId}`); if (saved) try { return JSON.parse(saved); } catch (e) { return null; } return null; }
+        function applyScopeToUI(scope) { if (!scope) return; const radio = document.querySelector(`input[name="scopeType"][value="${scope.type}"]`); if (radio) radio.checked = true; updateScopeUI(); setTimeout(() => { if (scope.type === 'department' && scope.department_ids) { const deptSelect = document.getElementById('scopeDepartmentSelect'); Array.from(deptSelect.options).forEach(opt => { if (scope.department_ids.includes(parseInt(opt.value))) opt.selected = true; }); } if (scope.type === 'team' && scope.team_ids) { const teamSelect = document.getElementById('scopeTeamSelect'); Array.from(teamSelect.options).forEach(opt => { if (scope.team_ids.includes(parseInt(opt.value))) opt.selected = true; }); } if (scope.type === 'private' && scope.user_emails) { document.getElementById('scopeUserEmail').value = scope.user_emails[0] || ''; } }, 100); }
 
         // ---------- Conversations ----------
-        async function loadConversations() {
-            try {
-                const res = await api.get('/api/conversations');
-                conversations = res.data.conversations || res.data || [];
-                renderSidebar();
-                if (conversations.length > 0 && !activeConversationId) {
-                    await switchConversation(conversations[0].id);
-                }
-            } catch (e) { console.warn('Failed to load conversations'); }
-        }
-
-        async function switchConversation(convId) {
-            activeConversationId = convId;
-            renderSidebar();
-            
-            // Close mobile sidebar on selection
-            document.getElementById('appSidebar').classList.remove('mobile-open');
-
-            try {
-                const res = await api.get(`/api/conversations/${convId}/messages`);
-                renderCurrentChat(res.data.messages || res.data || []);
-                await api.post(`/api/chat/activate/${convId}`);
-                const savedScope = loadScopeForConversation(convId);
-                if (savedScope) applyScopeToUI(savedScope);
-                else {
-                    const compRadio = document.querySelector('input[name="scopeType"][value="company"]');
-                    if(compRadio) compRadio.checked = true;
-                    updateScopeUI();
-                }
-            } catch (e) { renderCurrentChat([]); }
-        }
-
-        async function createNewConversation() {
-            try {
-                const res = await api.post('/api/conversations', { name: "New Chat" });
-                conversations.unshift(res.data);
-                await switchConversation(res.data.id);
-                renderSidebar();
-                showToast('New conversation created', 'success');
-            } catch (e) { showToast('Failed to create chat', 'error'); }
-        }
-
-        function renderSidebar() {
-            const container = document.getElementById('convList');
-            container.innerHTML = '';
-            conversations.forEach(conv => {
-                const div = document.createElement('div');
-                div.className = 'conv-item' + (conv.id === activeConversationId ? ' active' : '');
-                div.innerHTML = `
-                    <div class="conv-item-left" style="display:flex; gap:8px; align-items:center; flex:1;" onclick="window.switchChat('${conv.id}')">
-                        <span class="material-symbols-outlined" style="font-size:18px;">chat_bubble</span>
-                        <span class="conv-title">${escapeHtml(conv.name || 'New Chat')}</span>
-                    </div>
-                    <div class="conv-actions">
-                        <button onclick="event.stopPropagation(); window.deleteChat('${conv.id}')" title="Delete">
-                            <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
-                        </button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
+        async function loadConversations() { try { const res = await api.get('/api/conversations'); conversations = res.data.conversations || res.data || []; renderSidebar(); if (conversations.length > 0 && !activeConversationId) await switchConversation(conversations[0].id); } catch (e) { console.warn('Failed to load conversations'); } }
+        async function switchConversation(convId) { activeConversationId = convId; renderSidebar(); document.getElementById('appSidebar').classList.remove('mobile-open'); try { const res = await api.get(`/api/conversations/${convId}/messages`); renderCurrentChat(res.data.messages || res.data || []); await api.post(`/api/chat/activate/${convId}`); const savedScope = loadScopeForConversation(convId); if (savedScope) applyScopeToUI(savedScope); else { const compRadio = document.querySelector('input[name="scopeType"][value="company"]'); if(compRadio) compRadio.checked = true; updateScopeUI(); } } catch (e) { renderCurrentChat([]); } }
+        async function createNewConversation() { try { const res = await api.post('/api/conversations', { name: "New Chat" }); conversations.unshift(res.data); await switchConversation(res.data.id); renderSidebar(); showToast('New conversation created', 'success'); } catch (e) { showToast('Failed to create chat', 'error'); } }
+        function renderSidebar() { const container = document.getElementById('convList'); container.innerHTML = ''; conversations.forEach(conv => { const div = document.createElement('div'); div.className = 'conv-item' + (conv.id === activeConversationId ? ' active' : ''); div.innerHTML = `<div class="conv-item-left" style="display:flex; gap:8px; align-items:center; flex:1;" onclick="window.switchChat('${conv.id}')"><span class="material-symbols-outlined" style="font-size:18px;">chat_bubble</span><span class="conv-title">${escapeHtml(conv.name || 'New Chat')}</span></div><div class="conv-actions"><button onclick="event.stopPropagation(); window.deleteChat('${conv.id}')" title="Delete"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button></div>`; container.appendChild(div); }); }
         window.switchChat = switchConversation;
-        window.deleteChat = async (id) => {
-            try {
-                await api.delete(`/api/conversations/${id}`);
-                conversations = conversations.filter(c => c.id !== id);
-                if (activeConversationId === id && conversations.length > 0) await switchConversation(conversations[0].id);
-                else if (conversations.length === 0) { 
-                    activeConversationId = null; 
-                    renderCurrentChat([]); 
-                    document.body.classList.remove('chat-active'); 
-                    document.getElementById('chatContainer').innerHTML = '<div id="emptyState" style="text-align:center; margin-top:60px;"><h1 style="font-family:Google Sans; font-size: 24px;">✨ Ask with inline citations</h1><p style="color: var(--text-muted); margin-top: 8px;">Upload documents and get source‑linked answers</p></div>'; 
-                }
-                renderSidebar();
-                showToast('Conversation deleted', 'success');
-            } catch (e) { showToast('Delete failed', 'error'); }
-        };
+        window.deleteChat = async (id) => { try { await api.delete(`/api/conversations/${id}`); conversations = conversations.filter(c => c.id !== id); if (activeConversationId === id && conversations.length > 0) await switchConversation(conversations[0].id); else if (conversations.length === 0) { activeConversationId = null; renderCurrentChat([]); document.body.classList.remove('chat-active'); document.getElementById('chatContainer').innerHTML = '<div id="emptyState" style="text-align:center; margin-top:60px;"><h1 style="font-family:Google Sans; font-size: 24px;">✨ Ask with inline citations</h1><p style="color: var(--text-muted); margin-top: 8px;">Upload documents and get source‑linked answers</p></div>'; } renderSidebar(); showToast('Conversation deleted', 'success'); } catch (e) { showToast('Delete failed', 'error'); } };
 
-        // ========== UNIFIED MESSAGE RENDERING ==========
-        async function createMessageElement(msg) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${msg.role === 'user' ? 'user-message' : 'bot-message'}`;
-            
-            if (msg.role === 'user') {
-                const bubble = document.createElement('div');
-                bubble.className = 'bubble';
-                bubble.innerText = msg.content;
-                messageDiv.appendChild(bubble);
-            } else {
-                const avatar = document.createElement('div');
-                avatar.className = 'avatar';
-                avatar.innerHTML = '<span class="material-symbols-outlined">auto_awesome</span>';
-                
-                const bubble = document.createElement('div');
-                bubble.className = 'bubble';
-                
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'markdown-body';
-                
-                // Parse Markdown and Citations
-                let html = await marked.parse(msg.content);
-                html = DOMPurify.sanitize(html);
-                html = html.replace(/\[(\d+)\]/g, (match, num) => `<sup class="citation-number" data-idx="${num}">[${num}]</sup>`);
-                contentDiv.innerHTML = html;
-                bubble.appendChild(contentDiv);
+        // ========== UNIFIED MESSAGE RENDERING (same as previous correct version) ==========
+        async function createMessageElement(msg) { /* keep from earlier version – identical */ const messageDiv = document.createElement('div'); messageDiv.className = `message ${msg.role === 'user' ? 'user-message' : 'bot-message'}`; if (msg.role === 'user') { const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.innerText = msg.content; messageDiv.appendChild(bubble); } else { const avatar = document.createElement('div'); avatar.className = 'avatar'; avatar.innerHTML = '<span class="material-symbols-outlined">auto_awesome</span>'; const bubble = document.createElement('div'); bubble.className = 'bubble'; const contentDiv = document.createElement('div'); contentDiv.className = 'markdown-body'; let html = await marked.parse(msg.content); html = DOMPurify.sanitize(html); html = html.replace(/\[(\d+)\]/g, (match, num) => `<sup class="citation-number" data-idx="${num}">[${num}]</sup>`); contentDiv.innerHTML = html; bubble.appendChild(contentDiv); const citations = msg.citations || []; if (citations.length > 0) { const sourcesPanel = document.createElement('div'); sourcesPanel.className = 'sources-panel'; sourcesPanel.innerHTML = `<div class="sources-title">📚 Sources</div>`; citations.forEach((cite, idx) => { const id = cite.id || idx+1; const title = cite.document_name || cite.title || 'Unknown document'; const page = cite.page ? `Page ${cite.page}` : ''; const score = cite.similarity ? `${Math.round(cite.similarity * 100)}% match` : ''; const preview = cite.text ? cite.text.substring(0, 150) + '...' : ''; const card = document.createElement('div'); card.className = 'source-card'; card.setAttribute('data-citation-id', id); card.innerHTML = `<div class="source-title"><span class="material-symbols-outlined" style="font-size:18px;">description</span><span>${escapeHtml(title)}</span></div><div class="source-meta">${page ? `<span>📄 ${page}</span>` : ''}${score ? `<span>🔗 ${score}</span>` : ''}</div>${preview ? `<div class="source-preview">${escapeHtml(preview)}</div>` : ''}`; if (cite.file_id) { card.style.cursor = 'pointer'; card.addEventListener('click', (e) => { e.stopPropagation(); openDocumentViewerById(cite.file_id); }); } sourcesPanel.appendChild(card); }); bubble.appendChild(sourcesPanel); } const feedbackDiv = document.createElement('div'); feedbackDiv.className = 'feedback-buttons'; if (msg.query_log_id || msg.id) { const qId = msg.query_log_id || msg.id; const likeBtn = document.createElement('button'); likeBtn.className = 'feedback-btn'; likeBtn.innerHTML = '<span class="material-symbols-outlined">thumb_up</span> Helpful'; const dislikeBtn = document.createElement('button'); dislikeBtn.className = 'feedback-btn'; dislikeBtn.innerHTML = '<span class="material-symbols-outlined">thumb_down</span> Not helpful'; const submitFeedback = async (rating) => { try { await api.post('/api/chat/feedback', { query_log_id: qId, rating: rating, comment: null }); likeBtn.disabled = true; dislikeBtn.disabled = true; showToast(`Feedback recorded`, 'success'); } catch (e) { showToast('Feedback failed', 'error'); } }; likeBtn.onclick = () => submitFeedback('helpful'); dislikeBtn.onclick = () => submitFeedback('not_helpful'); feedbackDiv.appendChild(likeBtn); feedbackDiv.appendChild(dislikeBtn); } const copyBtn = document.createElement('button'); copyBtn.className = 'copy-btn'; copyBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span> Copy'; copyBtn.onclick = () => copyToClipboard(msg.content); feedbackDiv.appendChild(copyBtn); bubble.appendChild(feedbackDiv); messageDiv.appendChild(avatar); messageDiv.appendChild(bubble); } return messageDiv; }
+        async function renderCurrentChat(messages) { const container = document.getElementById('chatContainer'); container.innerHTML = ''; if (!messages || messages.length === 0) { document.body.classList.remove('chat-active'); container.innerHTML = '<div id="emptyState" style="text-align:center; margin-top:60px;"><h1 style="font-family:Google Sans; font-size: 24px;">✨ Ask with inline citations</h1><p style="color: var(--text-muted); margin-top: 8px;">Upload documents and get source‑linked answers</p></div>'; return; } document.body.classList.add('chat-active'); for (const msg of messages) { const msgElement = await createMessageElement(msg); container.appendChild(msgElement); } container.scrollTop = container.scrollHeight; }
+        function addTypingIndicator() { const id = 'typing-' + Date.now(); const div = document.createElement('div'); div.id = id; div.className = 'message bot-message typing-indicator'; div.innerHTML = `<div class="avatar"><span class="material-symbols-outlined">auto_awesome</span></div><div class="bubble"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`; document.getElementById('chatContainer').appendChild(div); document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight; return id; }
+        function removeTypingIndicator(id) { const el = document.getElementById(id); if (el) el.remove(); }
+        async function sendMessage() { const input = document.getElementById('chatInput'); const text = input.value.trim(); if (!text) return; if (!activeConversationId) await createNewConversation(); const searchScope = getSearchScopeFromUI(); if (activeConversationId) saveScopeForConversation(activeConversationId, searchScope); const userMsgObj = { role: 'user', content: text }; const userDiv = await createMessageElement(userMsgObj); document.getElementById('chatContainer').appendChild(userDiv); document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight; document.getElementById('emptyState')?.remove(); document.body.classList.add('chat-active'); input.value = ''; input.style.height = 'auto'; document.getElementById('sendBtn').disabled = true; const typingId = addTypingIndicator(); try { const res = await api.post('/api/chat/', { input: text, conversation_id: activeConversationId, search_scope: searchScope }); removeTypingIndicator(typingId); const data = res.data; const botMsgObj = { role: 'bot', content: data.response, citations: data.citations || [], query_log_id: data.query_log_id }; const botDiv = await createMessageElement(botMsgObj); document.getElementById('chatContainer').appendChild(botDiv); document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight; await loadConversations(); } catch (err) { removeTypingIndicator(typingId); showToast('Failed to send message', 'error'); } document.getElementById('sendBtn').disabled = false; input.focus(); }
+        const chatInput = document.getElementById('chatInput'); chatInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; document.getElementById('sendBtn').disabled = this.value.trim() === ''; });
 
-                // Sources Panel (if citations exist in history or new message)
-                const citations = msg.citations || [];
-                if (citations.length > 0) {
-                    const sourcesPanel = document.createElement('div');
-                    sourcesPanel.className = 'sources-panel';
-                    sourcesPanel.innerHTML = `<div class="sources-title">📚 Sources</div>`;
-                    
-                    citations.forEach((cite, idx) => {
-                        const id = cite.id || idx+1;
-                        const title = cite.document_name || cite.title || 'Unknown document';
-                        const page = cite.page ? `Page ${cite.page}` : '';
-                        const score = cite.similarity ? `${Math.round(cite.similarity * 100)}% match` : '';
-                        const preview = cite.text ? cite.text.substring(0, 150) + '...' : '';
-                        
-                        const card = document.createElement('div');
-                        card.className = 'source-card';
-                        card.setAttribute('data-citation-id', id);
-                        card.innerHTML = `
-                            <div class="source-title">
-                                <span class="material-symbols-outlined" style="font-size:18px;">description</span>
-                                <span>${escapeHtml(title)}</span>
-                            </div>
-                            <div class="source-meta">
-                                ${page ? `<span>📄 ${page}</span>` : ''}
-                                ${score ? `<span>🔗 ${score}</span>` : ''}
-                            </div>
-                            ${preview ? `<div class="source-preview">${escapeHtml(preview)}</div>` : ''}
-                        `;
-                        
-                        if (cite.file_id) {
-                            card.style.cursor = 'pointer';
-                            card.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                openDocumentViewerById(cite.file_id);
-                            });
-                        }
-                        sourcesPanel.appendChild(card);
-                    });
-                    bubble.appendChild(sourcesPanel);
-                }
-
-                // Feedback & Copy Buttons
-                const feedbackDiv = document.createElement('div');
-                feedbackDiv.className = 'feedback-buttons';
-                
-                // Only show like/dislike if there's a query_log_id
-                if (msg.query_log_id || msg.id) {
-                    const qId = msg.query_log_id || msg.id;
-                    const likeBtn = document.createElement('button');
-                    likeBtn.className = 'feedback-btn';
-                    likeBtn.innerHTML = '<span class="material-symbols-outlined">thumb_up</span> Helpful';
-                    
-                    const dislikeBtn = document.createElement('button');
-                    dislikeBtn.className = 'feedback-btn';
-                    dislikeBtn.innerHTML = '<span class="material-symbols-outlined">thumb_down</span> Not helpful';
-
-                    const submitFeedback = async (rating) => {
-                        try {
-                            await api.post('/api/chat/feedback', { query_log_id: qId, rating: rating, comment: null });
-                            likeBtn.disabled = true;
-                            dislikeBtn.disabled = true;
-                            showToast(`Feedback recorded`, 'success');
-                        } catch (e) {
-                            showToast('Feedback failed', 'error');
-                        }
-                    };
-                    likeBtn.onclick = () => submitFeedback('helpful');
-                    dislikeBtn.onclick = () => submitFeedback('not_helpful');
-                    
-                    feedbackDiv.appendChild(likeBtn);
-                    feedbackDiv.appendChild(dislikeBtn);
-                }
-
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'copy-btn';
-                copyBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span> Copy';
-                copyBtn.onclick = () => copyToClipboard(msg.content);
-                
-                feedbackDiv.appendChild(copyBtn);
-                bubble.appendChild(feedbackDiv);
-
-                messageDiv.appendChild(avatar);
-                messageDiv.appendChild(bubble);
-            }
-            return messageDiv;
-        }
-
-        async function renderCurrentChat(messages) {
-            const container = document.getElementById('chatContainer');
-            container.innerHTML = '';
-            
-            if (!messages || messages.length === 0) {
-                document.body.classList.remove('chat-active');
-                container.innerHTML = '<div id="emptyState" style="text-align:center; margin-top:60px;"><h1 style="font-family:Google Sans; font-size: 24px;">✨ Ask with inline citations</h1><p style="color: var(--text-muted); margin-top: 8px;">Upload documents and get source‑linked answers</p></div>';
-                return;
-            }
-            
-            document.body.classList.add('chat-active');
-            
-            // Render all historical messages correctly with citations and buttons
-            for (const msg of messages) {
-                const msgElement = await createMessageElement(msg);
-                container.appendChild(msgElement);
-            }
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // ---------- Typing Indicator ----------
-        function addTypingIndicator() {
-            const id = 'typing-' + Date.now();
-            const div = document.createElement('div');
-            div.id = id;
-            div.className = 'message bot-message typing-indicator';
-            div.innerHTML = `<div class="avatar"><span class="material-symbols-outlined">auto_awesome</span></div><div class="bubble"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
-            document.getElementById('chatContainer').appendChild(div);
-            document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight;
-            return id;
-        }
-
-        function removeTypingIndicator(id) {
-            const el = document.getElementById(id);
-            if (el) el.remove();
-        }
-
-        // ---------- Send Message ----------
-        async function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if (!text) return;
-            if (!activeConversationId) await createNewConversation();
-
-            const searchScope = getSearchScopeFromUI();
-            if (activeConversationId) saveScopeForConversation(activeConversationId, searchScope);
-
-            // Append user message instantly
-            const userMsgObj = { role: 'user', content: text };
-            const userDiv = await createMessageElement(userMsgObj);
-            document.getElementById('chatContainer').appendChild(userDiv);
-            document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight;
-            
-            // Remove empty state if present
-            document.getElementById('emptyState')?.remove();
-            document.body.classList.add('chat-active');
-
-            input.value = '';
-            input.style.height = 'auto'; // Reset textarea height
-            document.getElementById('sendBtn').disabled = true;
-            const typingId = addTypingIndicator();
-
-            try {
-                const res = await api.post('/api/chat/', {
-                    input: text,
-                    conversation_id: activeConversationId,
-                    search_scope: searchScope
-                });
-                removeTypingIndicator(typingId);
-                const data = res.data;
-                
-                // Create unified message object for bot response
-                const botMsgObj = {
-                    role: 'bot',
-                    content: data.response,
-                    citations: data.citations || [],
-                    query_log_id: data.query_log_id
-                };
-                
-                const botDiv = await createMessageElement(botMsgObj);
-                document.getElementById('chatContainer').appendChild(botDiv);
-                document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight;
-                
-                await loadConversations();
-            } catch (err) {
-                removeTypingIndicator(typingId);
-                showToast('Failed to send message', 'error');
-            }
-            document.getElementById('sendBtn').disabled = false;
-            input.focus();
-        }
-
-        // ---------- Auto-resize Textarea ----------
-        const chatInput = document.getElementById('chatInput');
-        chatInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-            document.getElementById('sendBtn').disabled = this.value.trim() === '';
-        });
-
-        // ---------- File Upload ----------
-        function updateFileListUI() {
-            const container = document.getElementById('fileManagerContainer');
-            const listDiv = document.getElementById('fileUploadList');
-            listDiv.innerHTML = '';
-            if (pendingFiles.length === 0) {
-                container.style.display = 'none';
-                return;
-            }
-            container.style.display = 'block';
-            pendingFiles.forEach((file, idx) => {
-                const badge = document.createElement('div');
-                badge.className = 'file-badge';
-                badge.style.background = 'var(--bg-hover)';
-                badge.style.borderRadius = '8px';
-                badge.style.padding = '4px 8px';
-                badge.style.display = 'inline-flex';
-                badge.style.alignItems = 'center';
-                badge.style.gap = '6px';
-                badge.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">description</span> ${escapeHtml(file.name)} <span class="remove-file" data-index="${idx}" style="cursor:pointer; color: #ef4444;">✖</span>`;
-                listDiv.appendChild(badge);
-            });
-            document.querySelectorAll('.remove-file').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const idx = parseInt(btn.dataset.index);
-                    pendingFiles.splice(idx, 1);
-                    updateFileListUI();
-                });
-            });
-        }
+        // ---------- File Upload (sequential, with role-based parameters) ----------
+        function updateFileListUI() { const container = document.getElementById('fileManagerContainer'); const listDiv = document.getElementById('fileUploadList'); listDiv.innerHTML = ''; if (pendingFiles.length === 0) { container.style.display = 'none'; return; } container.style.display = 'block'; pendingFiles.forEach((file, idx) => { const badge = document.createElement('div'); badge.className = 'file-badge'; badge.style.background = 'var(--bg-hover)'; badge.style.borderRadius = '8px'; badge.style.padding = '4px 8px'; badge.style.display = 'inline-flex'; badge.style.alignItems = 'center'; badge.style.gap = '6px'; badge.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">description</span> ${escapeHtml(file.name)} <span class="remove-file" data-index="${idx}" style="cursor:pointer; color: #ef4444;">✖</span>`; listDiv.appendChild(badge); }); document.querySelectorAll('.remove-file').forEach(btn => { btn.addEventListener('click', (e) => { const idx = parseInt(btn.dataset.index); pendingFiles.splice(idx, 1); updateFileListUI(); }); }); }
 
         async function uploadFiles() {
-            if (pendingFiles.length === 0) {
-                showToast('No files selected', 'error');
-                return;
+            if (pendingFiles.length === 0) { showToast('No files selected', 'error'); return; }
+            if (!activeConversationId) { showToast('Create a conversation first', 'error'); return; }
+            const selectedScope = document.querySelector('input[name="uploadScope"]:checked')?.value;
+            if (!selectedScope) { showToast('Please select an access level', 'error'); return; }
+            let target_department_id = null, target_team_id = null;
+            const role = currentUser?.role || 'employee';
+            if (selectedScope === 'department') {
+                if (role === 'org_admin') {
+                    target_department_id = document.getElementById('uploadDepartmentSelect').value;
+                    if (!target_department_id) { showToast('Please select a department', 'error'); return; }
+                } else {
+                    // department_manager or team_lead/employee: no need to send target, backend will use user's department
+                }
+            } else if (selectedScope === 'team') {
+                if (role === 'org_admin') {
+                    target_team_id = document.getElementById('uploadTeamSelect').value;
+                    if (!target_team_id) { showToast('Please select a team', 'error'); return; }
+                } else if (role === 'department_manager') {
+                    target_team_id = document.getElementById('uploadTeamSelect').value;
+                    if (!target_team_id) { showToast('Please select a team', 'error'); return; }
+                } else {
+                    // team_lead/employee: auto use own team
+                }
             }
-            if (!activeConversationId) {
-                showToast('Create a conversation first', 'error');
-                return;
+            const uploadBtn = document.getElementById('executeUploadBtn');
+            uploadBtn.disabled = true;
+            let successCount = 0, failCount = 0;
+            for (const file of pendingFiles) {
+                const formData = new FormData();
+                formData.append('input_file', file);
+                formData.append('conversation_id', activeConversationId);
+                formData.append('scope', selectedScope);
+                if (target_department_id) formData.append('target_department_id', target_department_id);
+                if (target_team_id) formData.append('target_team_id', target_team_id);
+                try {
+                    uploadBtn.innerText = `Uploading ${file.name}...`;
+                    await api.post('/api/files/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                    successCount++;
+                } catch (e) { failCount++; console.error(`Upload failed: ${file.name}`, e); }
             }
-            const scope = document.getElementById('uploadScopeSelect').value;
-            const formData = new FormData();
-            for (let file of pendingFiles) {
-                formData.append('files', file);
-            }
-            formData.append('conversation_id', activeConversationId);
-            formData.append('scope', scope);
-            try {
-                const btn = document.getElementById('executeUploadBtn');
-                btn.disabled = true;
-                btn.innerText = 'Uploading...';
-                
-                const res = await api.post('/api/files/upload', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
-                showToast(`Uploaded ${pendingFiles.length} file(s)`, 'success');
-                pendingFiles = [];
-                updateFileListUI();
-                await loadAccessibleFiles();
-            } catch (e) {
-                showToast('Upload failed', 'error');
-            } finally {
-                const btn = document.getElementById('executeUploadBtn');
-                btn.disabled = false;
-                btn.innerText = 'Upload';
-            }
+            uploadBtn.innerText = 'Upload';
+            uploadBtn.disabled = false;
+            if (successCount > 0) { showToast(`Uploaded ${successCount} file(s). ${failCount} failed.`, failCount === 0 ? 'success' : 'error'); pendingFiles = []; updateFileListUI(); await loadAccessibleFiles(); } else { showToast('All uploads failed', 'error'); }
         }
 
         // ---------- File Explorer ----------
-        async function loadAccessibleFiles() {
-            try {
-                const res = await api.get('/api/files/accessible');
-                allAccessibleFiles = res.data;
-                renderAccessibleFiles('all');
-            } catch (e) { console.warn('Failed to load files'); }
-        }
-
-        function renderAccessibleFiles(filterType = 'all', subValue = null) {
-            const container = document.getElementById('driveFileContainer');
-            container.innerHTML = '';
-            let filtered = [...allAccessibleFiles];
-            if (filterType === 'company') {
-                filtered = filtered.filter(f => f.access_level === 'company');
-            } else if (filterType === 'department') {
-                filtered = filtered.filter(f => f.access_level === 'department');
-                if (subValue) filtered = filtered.filter(f => f.department === subValue);
-            } else if (filterType === 'team') {
-                filtered = filtered.filter(f => f.access_level === 'team');
-                if (subValue) filtered = filtered.filter(f => f.team === subValue);
-            } else if (filterType === 'private') {
-                filtered = filtered.filter(f => f.access_level === 'private');
-            }
-            if (filtered.length === 0) {
-                container.innerHTML = '<div style="grid-column:1/-1; text-align:center; color: var(--text-muted); padding: 20px;">No files found</div>';
-                return;
-            }
-            filtered.forEach(file => {
-                const card = document.createElement('div');
-                card.className = 'drive-card';
-                let accessLabel = '';
-                let ownerInfo = '';
-                if (file.access_level === 'company') accessLabel = '🏢 Company';
-                else if (file.access_level === 'department') accessLabel = `🏛️ Department: ${file.department || 'N/A'}`;
-                else if (file.access_level === 'team') accessLabel = `👥 Team: ${file.team || 'N/A'}`;
-                else if (file.access_level === 'private') {
-                    accessLabel = '🔒 Personal';
-                    if (file.owner_email) ownerInfo = `<div style="font-size:11px; color:var(--text-muted); margin-top:4px; overflow: hidden; text-overflow: ellipsis;">Owner: ${escapeHtml(file.owner_email)}</div>`;
-                }
-                card.innerHTML = `
-                    <span class="material-symbols-outlined" style="font-size:32px; color:var(--primary);">description</span>
-                    <div style="font-weight:500; margin-top:8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(file.original_filename || file.filename)}</div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${(file.file_size / 1024).toFixed(1)} KB</div>
-                    <div style="margin-top:6px;"><span class="access-badge">${accessLabel}</span></div>
-                    ${ownerInfo}
-                `;
-                card.onclick = () => openDocumentViewer(file);
-                container.appendChild(card);
-            });
-        }
-
-        function openDocumentViewer(file) {
-            const token = localStorage.getItem('access_token');
-            const viewUrl = `/api/files/download/${file.id}?token=${token}&inline=1`;
-            const iframe = document.getElementById('documentIframe');
-            iframe.src = viewUrl;
-            
-            // Set link for New Tab button
-            document.getElementById('viewerNewTabBtn').href = viewUrl;
-            
-            document.getElementById('viewerFileName').innerHTML = `<span class="material-symbols-outlined" style="vertical-align: middle;">description</span> ${escapeHtml(file.original_filename || file.filename)}`;
-            const modal = document.getElementById('documentViewerModal');
-            modal.style.display = 'flex';
-            setTimeout(() => modal.classList.add('show'), 10);
-        }
-
-        function openDocumentViewerById(fileId) {
-            const token = localStorage.getItem('access_token');
-            const viewUrl = `/api/files/download/${fileId}?token=${token}&inline=1`;
-            const iframe = document.getElementById('documentIframe');
-            iframe.src = viewUrl;
-            
-            document.getElementById('viewerNewTabBtn').href = viewUrl;
-            
-            document.getElementById('viewerFileName').innerHTML = `<span class="material-symbols-outlined" style="vertical-align: middle;">description</span> Viewing Document`;
-            const modal = document.getElementById('documentViewerModal');
-            modal.style.display = 'flex';
-            setTimeout(() => modal.classList.add('show'), 10);
-        }
+        async function loadAccessibleFiles() { try { const res = await api.get('/api/files/accessible'); allAccessibleFiles = res.data; renderAccessibleFiles('all'); } catch (e) { console.warn('Failed to load files', e); } }
+        function renderAccessibleFiles(filterType = 'all', subValue = null) { const container = document.getElementById('driveFileContainer'); container.innerHTML = ''; let filtered = [...allAccessibleFiles]; if (filterType === 'company') filtered = filtered.filter(f => f.access_level === 'company'); else if (filterType === 'department') { filtered = filtered.filter(f => f.access_level === 'department'); if (subValue) filtered = filtered.filter(f => f.department === subValue); } else if (filterType === 'team') { filtered = filtered.filter(f => f.access_level === 'team'); if (subValue) filtered = filtered.filter(f => f.team === subValue); } else if (filterType === 'private') filtered = filtered.filter(f => f.access_level === 'private'); if (filtered.length === 0) { container.innerHTML = '<div style="grid-column:1/-1; text-align:center; color: var(--text-muted); padding: 20px;">No files found</div>'; return; } filtered.forEach(file => { const card = document.createElement('div'); card.className = 'drive-card'; let accessLabel = '', ownerInfo = ''; if (file.access_level === 'company') accessLabel = '🏢 Company'; else if (file.access_level === 'department') accessLabel = `🏛️ Department: ${file.department || 'N/A'}`; else if (file.access_level === 'team') accessLabel = `👥 Team: ${file.team || 'N/A'}`; else if (file.access_level === 'private') { accessLabel = '🔒 Personal'; if (file.owner_email) ownerInfo = `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Owner: ${escapeHtml(file.owner_email)}</div>`; } card.innerHTML = `<span class="material-symbols-outlined" style="font-size:32px; color:var(--primary);">description</span><div style="font-weight:500; margin-top:8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(file.original_filename || file.filename)}</div><div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${(file.file_size / 1024).toFixed(1)} KB</div><div style="margin-top:6px;"><span class="access-badge">${accessLabel}</span></div>${ownerInfo}`; card.onclick = () => openDocumentViewer(file); container.appendChild(card); }); }
+        function openDocumentViewer(file) { const token = localStorage.getItem('access_token'); const viewUrl = `/api/files/download/${file.id}?token=${token}&inline=1`; document.getElementById('documentIframe').src = viewUrl; document.getElementById('viewerNewTabBtn').href = viewUrl; document.getElementById('viewerFileName').innerHTML = `<span class="material-symbols-outlined" style="vertical-align: middle;">description</span> ${escapeHtml(file.original_filename || file.filename)}`; const modal = document.getElementById('documentViewerModal'); modal.style.display = 'flex'; setTimeout(() => modal.classList.add('show'), 10); }
+        function openDocumentViewerById(fileId) { const token = localStorage.getItem('access_token'); const viewUrl = `/api/files/download/${fileId}?token=${token}&inline=1`; document.getElementById('documentIframe').src = viewUrl; document.getElementById('viewerNewTabBtn').href = viewUrl; document.getElementById('viewerFileName').innerHTML = `<span class="material-symbols-outlined" style="vertical-align: middle;">description</span> Viewing Document`; const modal = document.getElementById('documentViewerModal'); modal.style.display = 'flex'; setTimeout(() => modal.classList.add('show'), 10); }
 
         // ---------- Event Listeners & Init ----------
         function initEventListeners() {
-            // Mobile menu
-            document.getElementById('mobileMenuBtn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                document.getElementById('appSidebar').classList.toggle('mobile-open');
-            });
-            
-            // Close mobile sidebar when clicking main area
-            document.getElementById('mainArea').addEventListener('click', () => {
-                if(window.innerWidth <= 768) {
-                    document.getElementById('appSidebar').classList.remove('mobile-open');
-                }
-            });
-
+            document.getElementById('mobileMenuBtn').addEventListener('click', (e) => { e.stopPropagation(); document.getElementById('appSidebar').classList.toggle('mobile-open'); });
+            document.getElementById('mainArea').addEventListener('click', () => { if(window.innerWidth <= 768) document.getElementById('appSidebar').classList.remove('mobile-open'); });
             document.getElementById('newChatBtn').addEventListener('click', createNewConversation);
             document.getElementById('sendBtn').addEventListener('click', sendMessage);
-            
-            document.getElementById('chatInput').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if(!document.getElementById('sendBtn').disabled) {
-                        sendMessage();
-                    }
-                }
-            });
-            
-            document.getElementById('scopeToggleBtn').addEventListener('click', () => {
-                const panel = document.getElementById('searchScopePanel');
-                panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-            });
-            
+            document.getElementById('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if(!document.getElementById('sendBtn').disabled) sendMessage(); } });
+            document.getElementById('scopeToggleBtn').addEventListener('click', () => { const panel = document.getElementById('searchScopePanel'); panel.style.display = panel.style.display === 'block' ? 'none' : 'block'; });
             document.getElementById('fileUploadBtn').addEventListener('click', () => document.getElementById('pdfInput').click());
-            document.getElementById('pdfInput').addEventListener('change', (e) => {
-                if (e.target.files.length) {
-                    pendingFiles = pendingFiles.concat(Array.from(e.target.files));
-                    updateFileListUI();
-                }
-                e.target.value = ''; // Reset input
-            });
+            document.getElementById('pdfInput').addEventListener('change', (e) => { if (e.target.files.length) { pendingFiles = pendingFiles.concat(Array.from(e.target.files)); updateFileListUI(); } e.target.value = ''; });
             document.getElementById('executeUploadBtn').addEventListener('click', uploadFiles);
-            
-            document.getElementById('openExplorerBtn').addEventListener('click', async () => {
-                await loadAccessibleFiles();
-                const modal = document.getElementById('driveExplorerModal');
-                modal.style.display = 'flex';
-                setTimeout(() => modal.classList.add('show'), 10);
-            });
-            
-            document.getElementById('closeExplorerBtn').addEventListener('click', () => {
-                const modal = document.getElementById('driveExplorerModal');
-                modal.classList.remove('show');
-                setTimeout(() => modal.style.display = 'none', 200);
-            });
-            
-            document.getElementById('closeViewerBtn').addEventListener('click', () => {
-                const modal = document.getElementById('documentViewerModal');
-                modal.classList.remove('show');
-                setTimeout(() => {
-                    modal.style.display = 'none';
-                    document.getElementById('documentIframe').src = '';
-                }, 200);
-            });
-            
-            document.getElementById('sidebarProfileBtn').addEventListener('click', () => {
-                const modal = document.getElementById('profileDropdownModal');
-                modal.style.display = 'flex';
-                setTimeout(() => modal.classList.add('show'), 10);
-            });
-            document.getElementById('closeProfileDropdown').addEventListener('click', () => {
-                const modal = document.getElementById('profileDropdownModal');
-                modal.classList.remove('show');
-                setTimeout(() => modal.style.display = 'none', 200);
-            });
-            document.getElementById('saveProfileDropdownBtn').addEventListener('click', () => {
-                const theme = document.getElementById('themeSelectDropdown').value;
-                applyTheme(theme);
-                showToast('Settings saved', 'success');
-                document.getElementById('profileDropdownModal').classList.remove('show');
-                setTimeout(() => document.getElementById('profileDropdownModal').style.display = 'none', 200);
-            });
-            document.getElementById('logoutBtn').addEventListener('click', () => {
-                localStorage.clear();
-                window.location.href = '/';
-            });
+            document.getElementById('openExplorerBtn').addEventListener('click', async () => { await loadAccessibleFiles(); const modal = document.getElementById('driveExplorerModal'); modal.style.display = 'flex'; setTimeout(() => modal.classList.add('show'), 10); });
+            document.getElementById('closeExplorerBtn').addEventListener('click', () => { const modal = document.getElementById('driveExplorerModal'); modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200); });
+            document.getElementById('closeViewerBtn').addEventListener('click', () => { const modal = document.getElementById('documentViewerModal'); modal.classList.remove('show'); setTimeout(() => { modal.style.display = 'none'; document.getElementById('documentIframe').src = ''; }, 200); });
+            document.getElementById('sidebarProfileBtn').addEventListener('click', () => { const modal = document.getElementById('profileDropdownModal'); modal.style.display = 'flex'; setTimeout(() => modal.classList.add('show'), 10); });
+            document.getElementById('closeProfileDropdown').addEventListener('click', () => { const modal = document.getElementById('profileDropdownModal'); modal.classList.remove('show'); setTimeout(() => modal.style.display = 'none', 200); });
+            document.getElementById('saveProfileDropdownBtn').addEventListener('click', () => { const theme = document.getElementById('themeSelectDropdown').value; applyTheme(theme); showToast('Settings saved', 'success'); document.getElementById('profileDropdownModal').classList.remove('show'); setTimeout(() => document.getElementById('profileDropdownModal').style.display = 'none', 200); });
+            document.getElementById('logoutBtn').addEventListener('click', () => { localStorage.clear(); window.location.href = '/'; });
             document.querySelectorAll('input[name="scopeType"]').forEach(r => r.addEventListener('change', updateScopeUI));
-
-            // File explorer filter tabs
-            const tabs = document.querySelectorAll('.filter-tab');
-            const subFilterDiv = document.getElementById('explorerSubFilters');
-            const dynamicFilter = document.getElementById('explorerDynamicFilter');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    const filter = tab.dataset.filter;
-                    if (filter === 'department') {
-                        const depts = [...new Set(allAccessibleFiles.filter(f => f.access_level === 'department').map(f => f.department).filter(Boolean))];
-                        dynamicFilter.innerHTML = '<option value="">All Departments</option>' + depts.map(d => `<option value="${d}">${d}</option>`).join('');
-                        subFilterDiv.style.display = 'flex';
-                        dynamicFilter.onchange = () => renderAccessibleFiles('department', dynamicFilter.value);
-                        renderAccessibleFiles('department', dynamicFilter.value);
-                    } else if (filter === 'team') {
-                        const teams = [...new Set(allAccessibleFiles.filter(f => f.access_level === 'team').map(f => f.team).filter(Boolean))];
-                        dynamicFilter.innerHTML = '<option value="">All Teams</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
-                        subFilterDiv.style.display = 'flex';
-                        dynamicFilter.onchange = () => renderAccessibleFiles('team', dynamicFilter.value);
-                        renderAccessibleFiles('team', dynamicFilter.value);
-                    } else {
-                        subFilterDiv.style.display = 'none';
-                        renderAccessibleFiles(filter);
-                    }
-                });
-            });
+            const tabs = document.querySelectorAll('.filter-tab'); const subFilterDiv = document.getElementById('explorerSubFilters'); const dynamicFilter = document.getElementById('explorerDynamicFilter'); tabs.forEach(tab => { tab.addEventListener('click', () => { tabs.forEach(t => t.classList.remove('active')); tab.classList.add('active'); const filter = tab.dataset.filter; if (filter === 'department') { const depts = [...new Set(allAccessibleFiles.filter(f => f.access_level === 'department').map(f => f.department).filter(Boolean))]; dynamicFilter.innerHTML = '<option value="">All Departments</option>' + depts.map(d => `<option value="${d}">${d}</option>`).join(''); subFilterDiv.style.display = 'flex'; dynamicFilter.onchange = () => renderAccessibleFiles('department', dynamicFilter.value); renderAccessibleFiles('department', dynamicFilter.value); } else if (filter === 'team') { const teams = [...new Set(allAccessibleFiles.filter(f => f.access_level === 'team').map(f => f.team).filter(Boolean))]; dynamicFilter.innerHTML = '<option value="">All Teams</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join(''); subFilterDiv.style.display = 'flex'; dynamicFilter.onchange = () => renderAccessibleFiles('team', dynamicFilter.value); renderAccessibleFiles('team', dynamicFilter.value); } else { subFilterDiv.style.display = 'none'; renderAccessibleFiles(filter); } }); });
         }
+        window.addEventListener('storage', (event) => { if (event.key === 'access_token') { console.log('🔴 Token changed! Old:', event.oldValue, 'New:', event.newValue); console.trace(); } });
 
         async function init() {
             await fetchCurrentUser();
             await loadSystemData();
+            await loadUploadTargets();
             await loadConversations();
+            buildUploadScopeOptions();
             updateScopeUI();
             initEventListeners();
             document.getElementById('chatInput').focus();

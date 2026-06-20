@@ -45,3 +45,5 @@ opencv-python
 langchain-openai 
 langchain-anthropic 
 langchain-google-genai
+boto3
+supabase

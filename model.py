@@ -112,7 +112,8 @@ class ConversationFile(Base):
     file_size = Column(Integer)
     file_hash = Column(String(64))
     department = Column(String(100), nullable=True)   # department name
-    team = Column(String(100), nullable=True)   
+    team = Column(String(100), nullable=True)
+    gdrive_file_id = Column(String(255), nullable=True)   
     document_id = Column(String(50), index=True)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
     __table_args__ = (Index("idx_file_org", "organization_id"),)

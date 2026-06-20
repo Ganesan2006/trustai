@@ -7,6 +7,7 @@ import easyocr
 import numpy as np
 from PIL import Image
 import io
+#from zcatalyst import CatalystApp
 
 class PDFProcessor:
     def __init__(self, fallback_ocr: bool = True):
@@ -52,3 +53,23 @@ class PDFProcessor:
         except Exception as e:
             print(f"PDF error: {e}")
         return docs
+    
+    # def _perform_ocr_with_catalyst(self, image_bytes: bytes) -> str:
+    #     """Performs OCR on image bytes using Zoho Catalyst's Zia service."""
+    #     try:
+    #         # Initialize the Catalyst App
+    #         app = CatalystApp.get_instance()
+    #         zia = app.zia()
+    #         ocr = zia.ocr()
+
+    #         # Create a file-like object from the bytes
+    #         image_file = io.BytesIO(image_bytes)
+    #         image_file.name = "temp_image.jpg"  # Assign a name
+
+    #         # Call the Catalyst OCR API
+    #         # Specifying language as 'eng' for English. You can change or auto-detect.
+    #         result = ocr.extract_optical_characters(image_file, {'language': 'eng'})
+    #         return result.get('text', '')
+    #     except Exception as e:
+    #         print(f"Catalyst OCR Error: {e}")
+    #         return ""

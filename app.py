@@ -1,10 +1,11 @@
 # app.py
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from routers import auth, conversations, files, chat, pages, admin_analytics, admin, user   # <-- ADD user
+from routers import auth, conversations, files, chat, pages, admin_analytics, admin, user
 from middleware.org_resolver import OrgResolverMiddleware
 
 app = FastAPI(title="RAG Chat API")
+
 app.add_middleware(OrgResolverMiddleware)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

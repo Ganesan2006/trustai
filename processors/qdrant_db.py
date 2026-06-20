@@ -6,14 +6,22 @@ from qdrant_client.models import (
     Distance, VectorParams, SparseVectorParams, SparseIndexParams,
     Filter, PointStruct
 )
+from qdrant_client import QdrantClient
+from config import QDRANT_URL, QDRANT_API_KEY
 from langchain_core.documents import Document
 from .sparse_vector import BM25SparseVectorGenerator
 
-DEBUG = True
+DEBUG = False
 
 class QdrantManager:
-    def __init__(self, host: str = "localhost", port: int = 6333, collection_prefix: str = "org_"):
-        self.client = QdrantClient(host=host, port=port)
+    def __init__(self, collection_prefix: str = "org_"):
+        # Use cloud URL if provided, otherwise fallback to localhost
+        if QDRANT_URL and "cloud.qdrant.io" in QDRANT_URL:
+            self.client = QdrantClient(
+                url=QDRANT_URL,
+                api_key=QDRANT_API_KEY,
+                timeout=60
+            )
         self.collection_prefix = collection_prefix
         self.embedding_model = None
         self._vector_size = None
@@ -44,6 +52,38 @@ class QdrantManager:
             )
             print(f"Created Qdrant collection for org {org_id}")
 
+            # ✅ Create payload indexes for filtering fields
+            try:
+                # Index for access_level (used in filtering)
+                self.client.create_payload_index(
+                    collection_name=col_name,
+                    field_name="access_level",
+                    field_type="keyword"
+                )
+                self.client.create_payload_index(
+                    collection_name=col_name,
+                    field_name="department",
+                    field_type="keyword"
+                )
+                self.client.create_payload_index(
+                    collection_name=col_name,
+                    field_name="team",
+                    field_type="keyword"
+                )
+                self.client.create_payload_index(
+                    collection_name=col_name,
+                    field_name="uploaded_by",
+                    field_type="keyword"
+                )
+                self.client.create_payload_index(
+                    collection_name=col_name,
+                    field_name="document_id",
+                    field_type="keyword"
+                )
+                print(f"Payload indexes created for {col_name}")
+            except Exception as e:
+                print(f"Warning: Could not create payload indexes: {e}")
+                
     def add_documents_with_metadata_list(self, org_id: str, documents: List[Document], metadata_list: List[Dict]):
         self.ensure_collection_exists(org_id)
         col_name = self._get_collection_name(org_id)

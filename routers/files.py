@@ -3,61 +3,57 @@ import os
 import uuid
 import hashlib
 import mimetypes
+import tempfile
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from werkzeug.utils import secure_filename
 from fastapi.concurrency import run_in_threadpool
+import io
 
 from dependencies import get_db, get_current_user
 from model import User, Conversation, ConversationFile, Department, Team, DocumentAccessLog
 from action import llmProcessor
 from qdrant_client import models
+from processors.supabase_storage import (
+    upload_file_to_supabase,
+    download_file_from_supabase,
+    delete_file_from_supabase,
+    get_public_url
+)
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 DEBUG = True
+
 # ------------------------------------------------------------------
-# Helper to get upload targets based on user role (for frontend dropdowns)
+# Helper to get upload targets
 # ------------------------------------------------------------------
 @router.get("/upload-targets")
 async def get_upload_targets(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Returns departments/teams that the current user can upload to, based on role.
-    - Admin: all departments + all teams
-    - Department Manager: only teams under their own department (for team scope)
-    - Others: empty lists (they use their own department/team, no selection needed)
-    """
     org_id = current_user.organization_id
     response = {"departments": [], "teams": []}
 
     if current_user.role == "org_admin":
-        # Admin sees all departments and all teams
         depts = db.query(Department).filter(Department.organization_id == org_id).all()
         teams = db.query(Team).filter(Team.organization_id == org_id).all()
         response["departments"] = [{"id": d.id, "name": d.name} for d in depts]
         response["teams"] = [{"id": t.id, "name": t.name, "department_id": t.department_id} for t in teams]
-
     elif current_user.role == "department_manager":
-        # Manager sees only teams under their own department (for team scope)
         if current_user.department_id:
             teams = db.query(Team).filter(
                 Team.organization_id == org_id,
                 Team.department_id == current_user.department_id
             ).all()
             response["teams"] = [{"id": t.id, "name": t.name} for t in teams]
-        # No department list needed (they use their own department automatically)
-
-    # For team_lead and employee: return empty lists – frontend will not show dropdowns
-
     return response
 
 
 # ------------------------------------------------------------------
-# Upload endpoint (new logic)
+# Upload endpoint – Supabase Storage
 # ------------------------------------------------------------------
 @router.post("/upload")
 async def upload_file(
@@ -93,13 +89,13 @@ async def upload_file(
         ConversationFile.organization_id == current_user.organization_id
     ).first()
     if existing:
+        print("file is already existing")
         raise HTTPException(status_code=409, detail="Duplicate file already exists")
 
-    # 4. Determine effective department name and team name for Qdrant payload
+    # 4. Determine effective department and team names for Qdrant payload (unchanged)
     effective_dept_name = None
     effective_team_name = None
 
-    # Helper to fetch department or team by ID (with org check)
     def get_dept_by_id(dept_id):
         return db.query(Department).filter(
             Department.id == dept_id,
@@ -114,11 +110,10 @@ async def upload_file(
 
     if scope == "company":
         pass
-
     elif scope == "department":
         if current_user.role == "org_admin":
             if not target_department_id:
-                raise HTTPException(400, "Admin must select a department for department scope")
+                raise HTTPException(400, "Admin must select a department")
             dept = get_dept_by_id(target_department_id)
             if not dept:
                 raise HTTPException(400, "Invalid department")
@@ -130,21 +125,18 @@ async def upload_file(
             if not dept:
                 raise HTTPException(400, "Assigned department not found")
             effective_dept_name = dept.name
-
     elif scope == "team":
         if current_user.role == "org_admin":
             if not target_team_id:
-                raise HTTPException(400, "Admin must select a team for team scope")
+                raise HTTPException(400, "Admin must select a team")
             team = get_team_by_id(target_team_id)
             if not team:
                 raise HTTPException(400, "Invalid team")
             effective_team_name = team.name
-            # Optionally store the department name of the team as well (for context)
             if team.department_id:
                 dept = get_dept_by_id(team.department_id)
                 if dept:
                     effective_dept_name = dept.name
-
         elif current_user.role == "department_manager":
             if not target_team_id:
                 raise HTTPException(400, "Department manager must select a team")
@@ -156,8 +148,7 @@ async def upload_file(
                 dept = get_dept_by_id(team.department_id)
                 if dept:
                     effective_dept_name = dept.name
-
-        else:  # Team lead or employee
+        else:
             if not current_user.team_id:
                 raise HTTPException(400, "You are not assigned to any team")
             team = db.query(Team).filter(Team.id == current_user.team_id).first()
@@ -168,99 +159,115 @@ async def upload_file(
                 dept = get_dept_by_id(team.department_id)
                 if dept:
                     effective_dept_name = dept.name
-
     elif scope == "private":
         pass
     else:
         raise HTTPException(400, f"Invalid scope: {scope}")
 
-    # 5. Save physical file
-    org_dir = f"uploads/org_{org_short_id}"
-    files_dir = os.path.join(org_dir, "files")
-    os.makedirs(files_dir, exist_ok=True)
+    # 5. Save file temporarily for processing (chunking needs a local path)
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(content)
+        tmp_path = tmp.name
 
-    safe_name = secure_filename(input_file.filename)
-    base, ext = os.path.splitext(safe_name)
-    file_path = os.path.join(files_dir, safe_name)
-    counter = 1
-    while os.path.exists(file_path):
-        file_path = os.path.join(files_dir, f"{base}_{counter}{ext}")
-        counter += 1
-    original_path = os.path.abspath(file_path)
-    with open(original_path, "wb") as f:
-        f.write(content)
+    try:
+        # 6. Process document into chunks (needs local file path)
+        llm = llmProcessor()
+        document_id = str(uuid.uuid4())
+        upload_date = datetime.utcnow().isoformat()
+        ext_type = os.path.splitext(input_file.filename)[1].lower().lstrip('.')
 
-    # 6. Process document into chunks
-    llm = llmProcessor()
-    document_id = str(uuid.uuid4())
-    upload_date = datetime.utcnow().isoformat()
-    ext_type = os.path.splitext(input_file.filename)[1].lower().lstrip('.')
+        docs = await run_in_threadpool(
+            llm.load_process_from_path, tmp_path, document_id, org_short_id, input_file.filename
+        )
+        if not docs:
+            raise HTTPException(400, "No content extracted from file")
 
-    docs = await run_in_threadpool(
-        llm.load_process_from_path, original_path, document_id, org_short_id, input_file.filename
-    )
-    if not docs:
-        os.remove(original_path)
-        raise HTTPException(400, "No content extracted from file")
+        # 7. Near‑duplicate detection
+        full_text = " ".join([d.page_content for d in docs])[:2048]
+        if full_text:
+            embedding = llm.embedding_model.embed_query(full_text)
+            similar = llm.qdrant.search_by_vector(org_short_id, embedding, limit=5, threshold=0.95)
+            if similar:
+                raise HTTPException(409, "Near‑duplicate document detected")
 
-    # 7. Near‑duplicate detection
-    full_text = " ".join([d.page_content for d in docs])[:2048]
-    if full_text:
-        embedding = llm.embedding_model.embed_query(full_text)
-        similar = llm.qdrant.search_by_vector(org_short_id, embedding, limit=5, threshold=0.95)
-        if similar:
-            os.remove(original_path)
-            raise HTTPException(409, "Near‑duplicate document detected")
+        # 8. Build metadata list for Qdrant
+        metadata_list = []
+        for idx, doc in enumerate(docs):
+            meta = {
+                "organization_id": org_short_id,
+                "document_id": document_id,
+                "chunk_id": str(uuid.uuid4()),
+                "chunk_number": idx + 1,
+                "title": input_file.filename,
+                "file_name": input_file.filename,
+                "page_number": doc.metadata.get("page", 0),
+                "uploaded_by": str(current_user.id),
+                "upload_date": upload_date,
+                "source_type": ext_type,
+                "access_level": scope,
+            }
+            if effective_dept_name:
+                meta["department"] = effective_dept_name
+            if effective_team_name:
+                meta["team"] = effective_team_name
+            metadata_list.append(meta)
 
-    # 8. Build metadata list for Qdrant
-    metadata_list = []
-    for idx, doc in enumerate(docs):
-        meta = {
-            "organization_id": org_short_id,
-            "document_id": document_id,
-            "chunk_id": str(uuid.uuid4()),
-            "chunk_number": idx + 1,
-            "title": input_file.filename,
-            "file_name": input_file.filename,
-            "page_number": doc.metadata.get("page", 0),
-            "uploaded_by": str(current_user.id),
-            "upload_date": upload_date,
-            "source_type": ext_type,
-            "access_level": scope,
-        }
-        if effective_dept_name:
-            meta["department"] = effective_dept_name
-        if effective_team_name:
-            meta["team"] = effective_team_name
-        metadata_list.append(meta)
+        # 9. Insert into Qdrant
+        await run_in_threadpool(llm.add_documents_to_company_with_metadata, org_short_id, docs, metadata_list)
 
-    # 9. Insert into Qdrant
-    await run_in_threadpool(llm.add_documents_to_company_with_metadata, org_short_id, docs, metadata_list)
+        # 10. Upload file to Supabase Storage
+        try:
+            file_key, public_url = upload_file_to_supabase(
+                content,  # bytes
+                input_file.filename,
+                input_file.content_type
+            )
+        except Exception as e:
+            print("error in supabase file upload")
+            raise HTTPException(status_code=500, detail=f"Supabase upload failed: {str(e)}")
 
-    # 10. Save file record in PostgreSQL
-    conv_file = ConversationFile(
-        organization_id=current_user.organization_id,
-        conversation_id=conv_id,
-        user_id=current_user.id,
-        filename=os.path.basename(original_path),
-        original_filename=input_file.filename,
-        file_path=original_path,
-        file_size=os.path.getsize(original_path),
-        file_hash=file_hash,
-        document_id=document_id,
-        access_level=scope,
-        department=effective_dept_name,
-        team=effective_team_name
-    )
-    db.add(conv_file)
-    db.commit()
-    db.refresh(conv_file)
+        # 11. Save file record in PostgreSQL
+        conv_file = ConversationFile(
+            organization_id=current_user.organization_id,
+            conversation_id=conv_id,
+            user_id=current_user.id,
+            filename=os.path.basename(tmp_path),   # stored name (not used)
+            original_filename=input_file.filename,
+            file_path=file_key,                    # store the key for retrieval
+            file_size=len(content),
+            file_hash=file_hash,
+            document_id=document_id,
+            access_level=scope,
+            department=effective_dept_name,
+            team=effective_team_name,
+            gdrive_file_id=public_url              # reuse column for public URL
+        )
+        db.add(conv_file)
+        db.commit()
+        db.refresh(conv_file)
 
-    return {"message": "File uploaded successfully", "file_id": conv_file.id}
+        return {"message": "File uploaded successfully", "file_id": conv_file.id}
 
+    finally:
+        # Clean up temporary file
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+# ------------------------------------------------------------------
+# Delete document – also remove from Supabase
+# ------------------------------------------------------------------
 @router.delete("/document/{document_id}")
-async def delete_document(document_id: str, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    files = db.query(ConversationFile).filter(ConversationFile.document_id == document_id, ConversationFile.organization_id == current_user.organization_id).all()
+async def delete_document(
+    document_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    files = db.query(ConversationFile).filter(
+        ConversationFile.document_id == document_id,
+        ConversationFile.organization_id == current_user.organization_id
+    ).all()
     if not files:
         raise HTTPException(status_code=404)
     if any(f.user_id != current_user.id and current_user.role != "org_admin" for f in files):
@@ -277,12 +284,20 @@ async def delete_document(document_id: str, request: Request, current_user: User
             print(f"Qdrant deletion error: {e}")
 
     for f in files:
-        if os.path.exists(f.file_path):
-            os.remove(f.file_path)
+        # Delete from Supabase if we have a key
+        if f.file_path:  # this is the key
+            try:
+                delete_file_from_supabase(f.file_path)
+            except Exception as e:
+                print(f"Failed to delete from Supabase: {e}")
         db.delete(f)
     db.commit()
     return {"message": "Deleted"}
 
+
+# ------------------------------------------------------------------
+# Serve file (inline) – uses Supabase public URL or redirect
+# ------------------------------------------------------------------
 @router.get("/serve/{user_id}/{conv_id}/{filename}")
 async def serve_file(
     user_id: int,
@@ -292,7 +307,7 @@ async def serve_file(
     token: str = None,
     db: Session = Depends(get_db)
 ):
-    # Auth logic (unchanged)
+    # Authentication (unchanged)
     current_user_id = None
     if token:
         from jose import jwt, JWTError
@@ -312,54 +327,42 @@ async def serve_file(
             raise HTTPException(status_code=401, detail="Unauthorized")
         current_user_id = current_user.id
 
-    # ✅ Find file by document_id (more reliable)
-    # First, find the ConversationFile that matches the filename (or original_filename)
-    # But since filename may be the stored name, try both.
     file_record = db.query(ConversationFile).filter(
         ConversationFile.filename == filename,
         ConversationFile.user_id == user_id
     ).first()
-    
     if not file_record:
-        # Fallback: try by original_filename (less secure, but works for legacy)
         file_record = db.query(ConversationFile).filter(
             ConversationFile.original_filename == filename,
             ConversationFile.user_id == user_id
         ).first()
-    
     if not file_record:
         raise HTTPException(status_code=404, detail="File not found")
 
-    if not os.path.exists(file_record.file_path):
-        raise HTTPException(status_code=404, detail="File missing on disk")
+    # Use public URL if available
+    if file_record.gdrive_file_id:  # stored public URL
+        return RedirectResponse(url=file_record.gdrive_file_id)
 
-    # Log access (with organization_id)
-    try:
-        access_log = DocumentAccessLog(
-            organization_id=file_record.organization_id,
-            file_id=file_record.id,
-            user_id=current_user_id,
-            action='view',
-            ip_address=request.client.host,
-            user_agent=request.headers.get('user-agent', '')
+    # Otherwise, fallback to streaming (if we have key)
+    if file_record.file_path:
+        try:
+            file_content = download_file_from_supabase(file_record.file_path)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to fetch from Supabase: {str(e)}")
+        mime_type, _ = mimetypes.guess_type(file_record.original_filename or filename)
+        mime_type = mime_type or 'application/octet-stream'
+        return StreamingResponse(
+            io.BytesIO(file_content),
+            media_type=mime_type,
+            headers={"Content-Disposition": f"inline; filename=\"{file_record.original_filename or filename}\""}
         )
-        db.add(access_log)
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        print(f"Logging error: {e}")
 
-    mime_type, _ = mimetypes.guess_type(file_record.original_filename or filename)
-    if not mime_type:
-        mime_type = 'application/octet-stream'
-    return FileResponse(
-        file_record.file_path,
-        media_type=mime_type,
-        filename=file_record.original_filename or filename,
-        headers={"Content-Disposition": f"inline; filename=\"{file_record.original_filename or filename}\""}
-    )
+    raise HTTPException(status_code=404, detail="File not found")
 
 
+# ------------------------------------------------------------------
+# List accessible files (unchanged)
+# ------------------------------------------------------------------
 @router.get("/accessible")
 async def get_accessible_files(
     current_user: User = Depends(get_current_user),
@@ -380,14 +383,14 @@ async def get_accessible_files(
                 owner_email = owner.email if owner else None
             files.append({
                 "id": f.id,
-                "filename": f.filename,                       # stored name
+                "filename": f.filename,
                 "original_filename": f.original_filename,
                 "access_level": f.access_level,
                 "department": f.department,
                 "team": f.team,
                 "uploaded_by": f.user_id,
                 "owner_email": owner_email,
-                "conversation_id": f.conversation_id,         # ✅ ADD THIS
+                "conversation_id": f.conversation_id,
                 "uploaded_at": f.uploaded_at.isoformat(),
                 "file_size": f.file_size
             })
@@ -414,12 +417,17 @@ async def get_accessible_files(
                 "department": f.department,
                 "team": f.team,
                 "uploaded_by": f.user_id,
-                "conversation_id": f.conversation_id,         # ✅ ALREADY THERE
+                "conversation_id": f.conversation_id,
                 "file_size": f.file_size,
                 "uploaded_at": f.uploaded_at.isoformat()
             })
 
     return files
+
+
+# ------------------------------------------------------------------
+# Download by file ID – uses Supabase public URL or direct download
+# ------------------------------------------------------------------
 @router.get("/download/{file_id}")
 async def download_by_id(
     file_id: int,
@@ -428,7 +436,7 @@ async def download_by_id(
     inline: bool = False,
     db: Session = Depends(get_db)
 ):
-    # Authentication (same as serve_file)
+    # Authentication
     current_user_id = None
     if token:
         from jose import jwt, JWTError
@@ -449,22 +457,32 @@ async def download_by_id(
     file_record = db.query(ConversationFile).filter(ConversationFile.id == file_id).first()
     if not file_record:
         raise HTTPException(404, "File not found")
+
+    # Access control
     if file_record.user_id != current_user_id:
         user = db.query(User).filter(User.id == current_user_id).first()
-        if user.role not in ["org_admin", "super_admin"]:
+        if not user or user.role not in ["org_admin", "super_admin"]:
             raise HTTPException(403, "Access denied")
 
-    if not os.path.exists(file_record.file_path):
-        raise HTTPException(404, "File missing on disk")
+    # If we have a public URL, redirect (fastest)
+    if file_record.gdrive_file_id:
+        # Redirect to public URL
+        return RedirectResponse(url=file_record.gdrive_file_id)
 
-    mime_type, _ = mimetypes.guess_type(file_record.original_filename or file_record.filename)
-    if not mime_type:
-        mime_type = 'application/octet-stream'
-    disposition = "inline" if inline and mime_type in ['application/pdf', 'text/plain', 'image/jpeg', 'image/png'] else "attachment"
-    
-    return FileResponse(
-        file_record.file_path,
-        media_type=mime_type,
-        filename=file_record.original_filename or file_record.filename,
-        headers={"Content-Disposition": f"{disposition}; filename=\"{file_record.original_filename or file_record.filename}\""}
-    )
+    # Otherwise, download from Supabase and stream
+    if file_record.file_path:
+        try:
+            file_content = download_file_from_supabase(file_record.file_path)
+        except Exception as e:
+            raise HTTPException(500, f"Failed to fetch from Supabase: {str(e)}")
+
+        mime_type, _ = mimetypes.guess_type(file_record.original_filename or file_record.filename)
+        mime_type = mime_type or 'application/octet-stream'
+        disposition = "inline" if inline and mime_type in ['application/pdf', 'text/plain', 'image/jpeg', 'image/png'] else "attachment"
+        return StreamingResponse(
+            io.BytesIO(file_content),
+            media_type=mime_type,
+            headers={"Content-Disposition": f"{disposition}; filename=\"{file_record.original_filename or file_record.filename}\""}
+        )
+
+    raise HTTPException(404, "File not found")
