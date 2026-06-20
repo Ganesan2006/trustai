@@ -18,4 +18,9 @@ uv.lock
 #supporting system
 ~
 migrations
-
+uploads/
+*.pdf
+*.docx
+*.png
+*.jpg
+*.jpeg
