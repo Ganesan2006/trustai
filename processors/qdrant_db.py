@@ -23,13 +23,13 @@ class QdrantManager:
             # Use cloud URL if provided, otherwise fallback to localhost
             if settings.QDRANT_URL and "cloud.qdrant.io" in settings.QDRANT_URL:
                 _qdrant_client = AsyncQdrantClient(
-                    url=settings.QDRANT_URL,
-                    api_key=settings.QDRANT_API,
+                    url=settings.QDRANT_URL.strip(),
+                    api_key=settings.QDRANT_API.strip() if settings.QDRANT_API else None,
                     timeout=60.0
                 )
             elif settings.QDRANT_URL:
                 _qdrant_client = AsyncQdrantClient(
-                    url=settings.QDRANT_URL,
+                    url=settings.QDRANT_URL.strip(),
                     timeout=60.0
                 )
             else:
