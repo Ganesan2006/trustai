@@ -166,7 +166,8 @@ async def upload_file(
         raise HTTPException(400, f"Invalid scope: {scope}")
 
     # 5. Save file temporarily for processing (chunking needs a local path)
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+    file_suffix = os.path.splitext(input_file.filename)[1].lower()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=file_suffix) as tmp:
         tmp.write(content)
         tmp_path = tmp.name
 
@@ -175,7 +176,7 @@ async def upload_file(
         llm = llmProcessor()
         document_id = str(uuid.uuid4())
         upload_date = datetime.utcnow().isoformat()
-        ext_type = os.path.splitext(input_file.filename)[1].lower().lstrip('.')
+        ext_type = file_suffix.lstrip('.')
 
         docs = await run_in_threadpool(
             llm.load_process_from_path, tmp_path, document_id, org_short_id, input_file.filename
