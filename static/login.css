@@ -123,6 +123,7 @@ body {
 
 .avatars {
     display: flex;
+    padding-left: 12px;
 }
 
 .avatar {

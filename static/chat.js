@@ -634,7 +634,14 @@
         try {
             const res = await api.get('/api/files/accessible');
             allAccessibleFiles = res.data;
-            renderAccessibleFiles('all');
+            const activeTab = document.querySelector('.filter-tab.active');
+            const filterType = activeTab ? activeTab.dataset.filter : 'all';
+            let subValue = null;
+            if (filterType === 'department' || filterType === 'team') {
+                const dynamicFilter = document.getElementById('explorerDynamicFilter');
+                subValue = dynamicFilter ? dynamicFilter.value : null;
+            }
+            renderAccessibleFiles(filterType, subValue);
         } catch (e) { console.warn('Failed to load files', e); }
     }
 

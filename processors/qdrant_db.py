@@ -1,5 +1,6 @@
 # processors/qdrant_db.py
 import uuid
+import asyncio
 from typing import List, Dict, Optional
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
@@ -102,10 +103,16 @@ class QdrantManager:
     async def add_documents_with_metadata_list(self, org_id: str, documents: List[Document], metadata_list: List[Dict]):
         await self.ensure_collection_exists(org_id)
         col_name = self._get_collection_name(org_id)
+        
+        texts = [doc.page_content for doc in documents]
+        dense_vecs = await self.embedding_model.aembed_documents(texts)
+        # Using run_in_executor for sparse model since it might block the event loop otherwise if cpu intensive
+        sparse_vecs = await asyncio.to_thread(BM25SparseVectorGenerator.generate_batch, texts)
+        
         points = []
-        for doc, meta in zip(documents, metadata_list):
-            dense_vec = self.embedding_model.embed_query(doc.page_content)
-            sparse_vec = BM25SparseVectorGenerator.generate(doc.page_content)
+        for i, (doc, meta) in enumerate(zip(documents, metadata_list)):
+            dense_vec = dense_vecs[i]
+            sparse_vec = sparse_vecs[i]
             payload = {"text": doc.page_content}
             for key, value in meta.items():
                 if value is not None and value != "":
@@ -128,10 +135,10 @@ class QdrantManager:
         if not exists:
             return []
         MIN_SIMILARITY = 0.65
-        dense_vec = self.embedding_model.embed_query(query)
+        dense_vec = await self.embedding_model.aembed_query(query)
         dense_results_raw = await self.client.query_points(collection_name=col_name, query=dense_vec, query_filter=q_filter, limit=top_k, using="dense")
         dense_results = [hit for hit in dense_results_raw.points if hit.score >= MIN_SIMILARITY]
-        sparse_vec = BM25SparseVectorGenerator.generate(query)
+        sparse_vec = await asyncio.to_thread(BM25SparseVectorGenerator.generate, query)
         sparse_results = []
         try:
             sparse_results_raw = await self.client.query_points(collection_name=col_name, query=sparse_vec, query_filter=q_filter, limit=top_k, using="sparse")

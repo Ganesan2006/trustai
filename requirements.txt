@@ -49,3 +49,4 @@ boto3
 supabase
 pydantic-settings
 nest-asyncio
+fastembed

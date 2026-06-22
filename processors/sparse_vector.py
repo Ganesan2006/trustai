@@ -1,22 +1,25 @@
-from collections import defaultdict
+from typing import List
 from qdrant_client.models import SparseVector
+from fastembed import SparseTextEmbedding
+
+_sparse_model = None
 
 class BM25SparseVectorGenerator:
     @staticmethod
+    def _get_model():
+        global _sparse_model
+        if _sparse_model is None:
+            _sparse_model = SparseTextEmbedding(model_name="Qdrant/bm25")
+        return _sparse_model
+
+    @staticmethod
     def generate(text: str) -> SparseVector:
-        words = text.lower().split()
-        freq = defaultdict(int)
-        for w in words:
-            freq[w] += 1
-        # Assign a unique integer to each distinct word
-        word_to_idx = {}
-        idx = 0
-        for word in freq.keys():
-            word_to_idx[word] = idx
-            idx += 1
-        indices = []
-        values = []
-        for word, count in freq.items():
-            indices.append(word_to_idx[word])
-            values.append(count)
-        return SparseVector(indices=indices, values=values)
+        model = BM25SparseVectorGenerator._get_model()
+        res = list(model.embed([text]))[0]
+        return SparseVector(indices=res.indices.tolist(), values=res.values.tolist())
+
+    @staticmethod
+    def generate_batch(texts: List[str]) -> List[SparseVector]:
+        model = BM25SparseVectorGenerator._get_model()
+        results = model.embed(texts)
+        return [SparseVector(indices=res.indices.tolist(), values=res.values.tolist()) for res in results]
