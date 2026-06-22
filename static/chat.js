@@ -239,7 +239,10 @@
         } catch (e) { console.warn('Failed to load conversations'); }
     }
 
+    let isSwitchingConv = false;
     async function switchConversation(convId, updateUrl = true) {
+        if (isSwitchingConv) return;
+        isSwitchingConv = true;
         activeConversationId = convId;
         if (updateUrl) {
             window.history.pushState({}, '', '/chat/' + convId);
@@ -260,6 +263,8 @@
         } catch (e) {
             console.error("switchConversation Error:", e);
             renderCurrentChat([]);
+        } finally {
+            isSwitchingConv = false;
         }
     }
 
@@ -733,7 +738,10 @@
     }
 
     // ---------- Init ----------
+    let isInitialized = false;
     async function init() {
+        if (isInitialized) return;
+        isInitialized = true;
 
         await fetchCurrentUser();
         await loadSystemData();
