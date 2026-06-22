@@ -1,17 +1,51 @@
+:root {
+    --bg-main: #131314;
+    --bg-card: rgba(30, 31, 32, 0.7);
+    --bg-hover: rgba(51, 53, 55, 0.8);
+    --bg-active: rgba(37, 150, 190, 0.2);
+    --text-main: #e3e3e3;
+    --text-muted: #c4c7c5;
+    --primary: rgba(37, 150, 190, 1);
+    --primary-hover: rgba(37, 150, 190, 0.8);
+    --border-color: rgba(51, 53, 55, 0.8);
+    --input-bg: rgba(40, 42, 44, 0.7);
+    --input-border: #333537;
+    --shadow-float: 0 8px 24px rgba(0,0,0,0.6);
+    --glass-blur: blur(12px);
+}
+
+[data-theme="light"] {
+    --bg-main: #f0f4f9;
+    --bg-card: rgba(255, 255, 255, 0.9);
+    --bg-hover: #e9eef6;
+    --bg-active: rgba(37, 150, 190, 0.15);
+    --text-main: #1f1f1f;
+    --text-muted: #444746;
+    --primary: rgba(37, 150, 190, 1);
+    --primary-hover: rgba(37, 150, 190, 0.8);
+    --border-color: #e0e0e0;
+    --input-bg: #ffffff;
+    --input-border: #d1d5db;
+    --shadow-float: 0 8px 24px rgba(0,0,0,0.08);
+    --glass-blur: blur(12px);
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-color: var(--bg-main);
+    color: var(--text-main);
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 40px 20px;
+    transition: background-color 0.3s, color 0.3s;
 }
 
 .container {
@@ -20,9 +54,11 @@ body {
 }
 
 .card {
-    background: white;
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border-color);
     border-radius: 24px;
-    box-shadow: 0 25px 45px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-float);
     padding: 40px;
     transition: all 0.3s;
 }
@@ -30,13 +66,13 @@ body {
 h1 {
     font-size: 28px;
     margin-bottom: 8px;
-    color: #333;
+    color: var(--text-main);
     text-align: center;
 }
 
 .subtitle {
     text-align: center;
-    color: #666;
+    color: var(--text-muted);
     margin-bottom: 32px;
     font-size: 14px;
 }
@@ -44,10 +80,10 @@ h1 {
 .section-title {
     font-size: 18px;
     font-weight: 600;
-    color: #4a4a4a;
+    color: var(--text-main);
     margin: 24px 0 16px 0;
     padding-bottom: 8px;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--border-color);
 }
 
 .section-title:first-of-type {
@@ -61,7 +97,7 @@ h1 {
 .input-group label {
     display: block;
     font-weight: 500;
-    color: #495057;
+    color: var(--text-main);
     margin-bottom: 6px;
     font-size: 14px;
 }
@@ -71,18 +107,21 @@ h1 {
 .input-group textarea {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid #ced4da;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-main);
     border-radius: 10px;
     font-size: 14px;
     transition: 0.2s;
+    outline: none;
 }
 
 .input-group input:focus,
 .input-group select:focus,
 .input-group textarea:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102,126,234,0.2);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 150, 190, 0.2);
 }
 
 .input-group textarea {
@@ -91,14 +130,14 @@ h1 {
 
 .input-group small {
     display: block;
-    color: #6c757d;
+    color: var(--text-muted);
     font-size: 12px;
     margin-top: 4px;
 }
 
 .btn {
     width: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary);
     border: none;
     padding: 14px;
     border-radius: 12px;
@@ -107,33 +146,48 @@ h1 {
     font-weight: 600;
     cursor: pointer;
     margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 20px rgba(37, 150, 190, 0.2);
+    background: var(--primary-hover);
 }
 
 .error-message {
-    background: #fee2e2;
-    color: #dc2626;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid #ef4444;
     padding: 12px;
     border-radius: 12px;
     margin-top: 16px;
     display: none;
     font-size: 14px;
 }
+.success-message {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid #10b981;
+    padding: 12px;
+    border-radius: 12px;
+    display: none;
+    margin-bottom: 16px;
+}
 
 .info-text {
     text-align: center;
     margin-top: 24px;
     font-size: 14px;
-    color: #6c757d;
+    color: var(--text-muted);
 }
 
 .info-text a {
-    color: #667eea;
+    color: var(--primary);
     text-decoration: none;
     font-weight: 500;
 }
@@ -148,25 +202,70 @@ h1 {
     }
 }
 
-.dept-row, .team-row {
+.dynamic-section {
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    background: var(--bg-hover);
+}
+.dynamic-items {
+    margin-bottom: 12px;
+}
+.dynamic-item {
     display: flex;
     gap: 10px;
     margin-bottom: 10px;
     align-items: center;
+    flex-wrap: wrap;
+}
+.dynamic-item input, .dynamic-item select {
+    flex: 1;
+    min-width: 120px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-main);
+}
+.remove-item {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
 }
 .add-btn {
-    background: #e0e0e0;
+    background: var(--primary);
+    color: white;
     border: none;
+    border-radius: 20px;
     padding: 8px 16px;
-    border-radius: 8px;
     cursor: pointer;
     margin-top: 8px;
 }
-.remove-dept, .remove-team {
-    background: #ff4444;
-    color: white;
-    border: none;
+
+/* Custom Aesthetic Loading Animation */
+.aesthetic-loader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 0;
+}
+.aesthetic-wave {
+    width: 6px;
+    height: 16px;
+    background-color: var(--primary);
     border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
+    animation: wave 1s ease-in-out infinite;
+}
+.aesthetic-wave:nth-child(2) { animation-delay: 0.1s; }
+.aesthetic-wave:nth-child(3) { animation-delay: 0.2s; }
+.aesthetic-wave:nth-child(4) { animation-delay: 0.3s; }
+.aesthetic-wave:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes wave {
+    0%, 100% { height: 16px; opacity: 0.4; }
+    50% { height: 32px; opacity: 1; }
 }

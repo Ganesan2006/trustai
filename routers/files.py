@@ -1,19 +1,19 @@
-# routers/files.py
 import os
 import uuid
 import hashlib
 import mimetypes
 import tempfile
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
-from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse
+from typing import Optional, List
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request, Query
+from fastapi.responses import FileResponse, StreamingResponse,RedirectResponse
 from sqlalchemy.orm import Session
 from werkzeug.utils import secure_filename
 from fastapi.concurrency import run_in_threadpool
 import io
 
 from dependencies import get_db, get_current_user
-from model import User, Conversation, ConversationFile, Department, Team, DocumentAccessLog
+from model import User, Conversation, ConversationFile, Department, Team, DocumentAccessLog, QueryLog, RetrievalLog,ConversationAllowedFile,Message
 from action import llmProcessor
 from qdrant_client import models
 from processors.supabase_storage import (
@@ -58,7 +58,7 @@ async def get_upload_targets(
 @router.post("/upload")
 async def upload_file(
     request: Request,
-    conversation_id: str = Form(...),
+    conversation_id: Optional[str] = Form(None),
     input_file: UploadFile = File(...),
     scope: str = Form(...),
     target_department_id: int = Form(None),
@@ -66,15 +66,16 @@ async def upload_file(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # 1. Validate conversation
-    conv_id = int(conversation_id)
-    conv = db.query(Conversation).filter(
-        Conversation.id == conv_id,
-        Conversation.user_id == current_user.id,
-        Conversation.organization_id == current_user.organization_id
-    ).first()
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+    # 1. Validate conversation (only if provided)
+    conv_id = str(conversation_id) if conversation_id else None
+    if conv_id:
+        conv = db.query(Conversation).filter(
+            Conversation.id == conv_id,
+            Conversation.user_id == current_user.id,
+            Conversation.organization_id == current_user.organization_id
+        ).first()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
 
     # 2. Get organization short ID
     org_short_id = getattr(request.state, "org_short_id", None)
@@ -182,13 +183,8 @@ async def upload_file(
         if not docs:
             raise HTTPException(400, "No content extracted from file")
 
-        # 7. Near‑duplicate detection
-        full_text = " ".join([d.page_content for d in docs])[:2048]
-        if full_text:
-            embedding = llm.embedding_model.embed_query(full_text)
-            similar = llm.qdrant.search_by_vector(org_short_id, embedding, limit=5, threshold=0.95)
-            if similar:
-                raise HTTPException(409, "Near‑duplicate document detected")
+        # Near-duplicate document detection via full_text has been removed
+        # since it causes truncation issues. Exact file deduplication handles duplicates safely.
 
         # 8. Build metadata list for Qdrant
         metadata_list = []
@@ -213,7 +209,7 @@ async def upload_file(
             metadata_list.append(meta)
 
         # 9. Insert into Qdrant
-        await run_in_threadpool(llm.add_documents_to_company_with_metadata, org_short_id, docs, metadata_list)
+        await llm.add_documents_to_company_with_metadata(org_short_id, docs, metadata_list)
 
         # 10. Upload file to Supabase Storage
         try:
@@ -254,54 +250,81 @@ async def upload_file(
             os.remove(tmp_path)
 
 
-# ------------------------------------------------------------------
-# Delete document – also remove from Supabase
-# ------------------------------------------------------------------
-@router.delete("/document/{document_id}")
-async def delete_document(
-    document_id: str,
-    request: Request,
+@router.delete("/{conv_id}")
+def delete_conversation(
+    conv_id: str,
+    delete_files: bool = Query(True),   # default true for backward compatibility
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    files = db.query(ConversationFile).filter(
-        ConversationFile.document_id == document_id,
-        ConversationFile.organization_id == current_user.organization_id
-    ).all()
-    if not files:
-        raise HTTPException(status_code=404)
-    if any(f.user_id != current_user.id and current_user.role != "org_admin" for f in files):
-        raise HTTPException(status_code=403)
+    conv = db.query(Conversation).filter(
+        Conversation.id == conv_id,
+        Conversation.user_id == current_user.id,
+        Conversation.organization_id == current_user.organization_id
+    ).first()
+    if not conv:
+        raise HTTPException(status_code=404, detail="Conversation not found")
 
-    org_short_id = getattr(request.state, "org_short_id", None)
-    if org_short_id:
-        col_name = f"org_{org_short_id}"
-        filter_cond = models.Filter(must=[models.FieldCondition(key="document_id", match=models.MatchValue(value=document_id))])
-        try:
-            llm = llmProcessor()
-            llm.qdrant.client.delete(collection_name=col_name, points_selector=filter_cond)
-        except Exception as e:
-            print(f"Qdrant deletion error: {e}")
+    # Get associated files
+    files = db.query(ConversationFile).filter(ConversationFile.conversation_id == conv_id).all()
+    file_ids = [f.id for f in files]
 
-    for f in files:
-        # Delete from Supabase if we have a key
-        if f.file_path:  # this is the key
-            try:
-                delete_file_from_supabase(f.file_path)
-            except Exception as e:
-                print(f"Failed to delete from Supabase: {e}")
-        db.delete(f)
-    db.commit()
-    return {"message": "Deleted"}
+    if delete_files:
+        # Delete document access logs
+        if file_ids:
+            db.query(DocumentAccessLog).filter(DocumentAccessLog.file_id.in_(file_ids)).delete(synchronize_session=False)
 
+        # Delete from Qdrant and physical storage for each file
+        for f in files:
+            # Remove from Qdrant
+            if f.document_id:
+                org_short_id = current_user.organization.org_id  # assuming relationship
+                col_name = f"org_{org_short_id}"
+                try:
+                    llm = llmProcessor()
+                    filter_cond = models.Filter(must=[models.FieldCondition(key="document_id", match=models.MatchValue(value=f.document_id))])
+                    llm.qdrant.client.delete(collection_name=col_name, points_selector=filter_cond)
+                except Exception as e:
+                    print(f"Qdrant deletion error for {f.document_id}: {e}")
+            # Remove from Supabase
+            if f.file_path:
+                try:
+                    delete_file_from_supabase(f.file_path)
+                except Exception as e:
+                    print(f"Supabase deletion error for {f.file_path}: {e}")
+            db.delete(f)
 
+        # Also delete retrieval logs and query logs
+        query_log_ids = [ql.id for ql in db.query(QueryLog).filter(QueryLog.conversation_id == conv_id).all()]
+        if query_log_ids:
+            db.query(RetrievalLog).filter(RetrievalLog.query_log_id.in_(query_log_ids)).delete(synchronize_session=False)
+        db.query(QueryLog).filter(QueryLog.conversation_id == conv_id).delete(synchronize_session=False)
+
+        # Delete allowed files
+        db.query(ConversationAllowedFile).filter(ConversationAllowedFile.conversation_id == conv_id).delete()
+
+        # Delete messages and conversation
+        db.query(Message).filter(Message.conversation_id == conv_id).delete()
+        db.delete(conv)
+        db.commit()
+        return {"message": "Conversation and associated files deleted"}
+
+    else:
+        # Keep files: detach them from conversation (set conversation_id = NULL)
+        for f in files:
+            f.conversation_id = None   # assume conversation_id is nullable; if not, alter table
+        # Delete messages and conversation
+        db.query(Message).filter(Message.conversation_id == conv_id).delete()
+        db.delete(conv)
+        db.commit()
+        return {"message": "Conversation deleted, files retained"}
 # ------------------------------------------------------------------
 # Serve file (inline) – uses Supabase public URL or redirect
 # ------------------------------------------------------------------
 @router.get("/serve/{user_id}/{conv_id}/{filename}")
 async def serve_file(
     user_id: int,
-    conv_id: int,
+    conv_id: str,
     filename: str,
     request: Request,
     token: str = None,
@@ -376,11 +399,16 @@ async def get_accessible_files(
 
     if user_role in ["org_admin", "super_admin"]:
         all_files = base_query.all()
+        
+        # Batch query user emails for private files to prevent N+1 query problem
+        private_user_ids = {f.user_id for f in all_files if f.access_level == "private"}
+        user_emails = {}
+        if private_user_ids:
+            users = db.query(User).filter(User.id.in_(private_user_ids)).all()
+            user_emails = {u.id: u.email for u in users}
+
         for f in all_files:
-            owner_email = None
-            if f.access_level == "private":
-                owner = db.query(User).filter(User.id == f.user_id).first()
-                owner_email = owner.email if owner else None
+            owner_email = user_emails.get(f.user_id) if f.access_level == "private" else None
             files.append({
                 "id": f.id,
                 "filename": f.filename,

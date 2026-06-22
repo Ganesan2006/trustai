@@ -25,6 +25,13 @@ async def start_page():
         return HTMLResponse(content=f.read())
 
 
+@router.get("/chat/{conversation_id}", response_class=HTMLResponse)
+async def chat_page(conversation_id: str):
+    """Serve the chat interface for a specific conversation."""
+    with open("static/chat.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
 @router.get("/org/register", response_class=HTMLResponse)
 async def org_register_page():
     """Serve the organization registration page."""

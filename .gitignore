@@ -8,7 +8,6 @@ wheels/
 .python-version
 alembic.ini
 pyproject.toml
-README.md
 uv.lock
 
 # Virtual environments

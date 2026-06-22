@@ -4,7 +4,14 @@ from fastapi.staticfiles import StaticFiles
 from routers import auth, conversations, files, chat, pages, admin_analytics, admin, user
 from middleware.org_resolver import OrgResolverMiddleware
 
+import asyncio
+from tasks import cleanup_orphaned_files
+
 app = FastAPI(title="RAG Chat API")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(cleanup_orphaned_files())
 
 app.add_middleware(OrgResolverMiddleware)
 app.mount("/static", StaticFiles(directory="static"), name="static")

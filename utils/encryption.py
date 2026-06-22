@@ -1,6 +1,10 @@
 import os
 from cryptography.fernet import Fernet
 
+
+from dotenv import load_dotenv
+load_dotenv()
+
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 if not ENCRYPTION_KEY:
     raise RuntimeError("ENCRYPTION_KEY environment variable not set")

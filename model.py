@@ -1,9 +1,10 @@
 # model.py
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Float, ForeignKey, Enum, Index, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Float, ForeignKey, Enum, Index, UniqueConstraint,JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
+import uuid
 
 Base = declarative_base()
 
@@ -78,7 +79,7 @@ class User(Base):
 
 class Conversation(Base):
     __tablename__ = "conversations"
-    id = Column(Integer, primary_key=True)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(100), default="New chat")
@@ -94,16 +95,17 @@ class Conversation(Base):
 class Message(Base):
     __tablename__ = "messages"
     id = Column(Integer, primary_key=True)
-    conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False)
+    conversation_id = Column(String(36), ForeignKey("conversations.id", ondelete="CASCADE"), nullable=True)
     role = Column(String(20), nullable=False)
     content = Column(Text, nullable=False)
+    citations = Column(JSON, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
 
 class ConversationFile(Base):
     __tablename__ = "conversation_files"
     id = Column(Integer, primary_key=True)
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False)
+    conversation_id = Column(String(36), ForeignKey("conversations.id", ondelete="CASCADE"), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     filename = Column(String(255), nullable=False)
     original_filename = Column(String(255))
@@ -143,7 +145,7 @@ class QueryLog(Base):
     id = Column(Integer, primary_key=True)
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False)
+    conversation_id = Column(String(36), ForeignKey("conversations.id"), nullable=False)
     question = Column(Text, nullable=False)
     rewritten_question = Column(Text)
     answer = Column(Text)
@@ -185,7 +187,7 @@ class FeedbackLog(Base):
     __tablename__ = "feedback_logs"
     id = Column(Integer, primary_key=True)
     query_log_id = Column(Integer, ForeignKey("query_logs.id", ondelete="CASCADE"), nullable=False)
-    rating = Column(String(10))
+    rating = Column(String(20))
     comment = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -203,6 +205,6 @@ class KnowledgeGap(Base):
 class ConversationAllowedFile(Base):
     __tablename__ = "conversation_allowed_files"
     id = Column(Integer, primary_key=True)
-    conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False)
+    conversation_id = Column(String(36), ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False)
     document_id = Column(String(50), nullable=False)
     __table_args__ = (UniqueConstraint("conversation_id", "document_id", name="uq_conv_allowed"),)

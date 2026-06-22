@@ -1,15 +1,19 @@
 # routers/conversations.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Optional, List
 from dependencies import get_db, get_current_user
 from model import (
     User, Conversation, Message, ConversationFile, DocumentAccessLog,
-    QueryLog, RetrievalLog, ConversationAllowedFile, Department, Team
+    QueryLog, RetrievalLog, ConversationAllowedFile, Department, Team,Organization,
+    FeedbackLog
 )
 from pydantic import BaseModel
 import os
+from action import llmProcessor
+from qdrant_client import models
+from processors.supabase_storage import delete_file_from_supabase 
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
@@ -32,28 +36,30 @@ def get_conversations(
         Conversation.organization_id == current_user.organization_id
     ).order_by(Conversation.updated_at.desc()).all()
     return {
-        "conversations": [
-            {
-                "id": c.id,
-                "name": c.name,
-                "created_at": c.created_at,
-                "department_id": c.department_id,
-                "team_id": c.team_id,
-                "scope": c.scope
-            }
-            for c in convs
-        ]
-    }
+    "conversations": [
+        {
+            "id": c.id,
+            "name": c.name,
+            "created_at": c.created_at,
+            "department_id": c.department_id,
+            "team_id": c.team_id,
+            "scope": c.scope
+        }
+        for c in convs
+    ]
+}
 
 @router.post("")
 def create_conversation(
+    data: Optional[ConversationNameRequest] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    name = data.name if data and data.name else "New chat"
     conv = Conversation(
         organization_id=current_user.organization_id,
         user_id=current_user.id,
-        name="New chat"
+        name=name
     )
     db.add(conv)
     db.commit()
@@ -61,8 +67,10 @@ def create_conversation(
     return {"id": conv.id, "name": conv.name}
 
 @router.delete("/{conv_id}")
-def delete_conversation(
-    conv_id: int,
+async def delete_conversation(
+    conv_id: str,
+    request: Request,   # ← moved before delete_files
+    delete_files: bool = Query(True, description="If True, delete associated files and Qdrant vectors"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -74,40 +82,67 @@ def delete_conversation(
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    # Delete retrieval logs
+    files = db.query(ConversationFile).filter(ConversationFile.conversation_id == conv_id).all()
+    file_ids = [f.id for f in files]
+
+    if delete_files:
+        # Delete document access logs
+        if file_ids:
+            db.query(DocumentAccessLog).filter(DocumentAccessLog.file_id.in_(file_ids)).delete(synchronize_session=False)
+
+        # Get org_short_id (from request state or DB)
+        org_short_id = getattr(request.state, "org_short_id", None)
+        if not org_short_id:
+            org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
+            org_short_id = org.org_id if org else None
+
+        if org_short_id:
+            col_name = f"org_{org_short_id}"
+            llm = llmProcessor()
+            for f in files:
+                if f.document_id:
+                    try:
+                        filter_cond = models.Filter(must=[
+                            models.FieldCondition(key="document_id", match=models.MatchValue(value=f.document_id))
+                        ])
+                        await llm.qdrant.client.delete(collection_name=col_name, points_selector=filter_cond)
+                        print(f"Deleted Qdrant vectors for document {f.document_id}")
+                    except Exception as e:
+                        print(f"Qdrant deletion error for {f.document_id}: {e}")
+
+        # Delete physical files from Supabase and DB records
+        for f in files:
+            if f.file_path:
+                try:
+                    delete_file_from_supabase(f.file_path)
+                except Exception as e:
+                    print(f"Supabase deletion error for {f.file_path}: {e}")
+            db.delete(f)
+
+    else:
+        # Keep files: detach them from conversation
+        for f in files:
+            f.conversation_id = None
+            
+    # Delete retrieval logs, feedback logs, query logs, etc.
     query_log_ids = [ql.id for ql in db.query(QueryLog).filter(QueryLog.conversation_id == conv_id).all()]
     if query_log_ids:
         db.query(RetrievalLog).filter(RetrievalLog.query_log_id.in_(query_log_ids)).delete(synchronize_session=False)
-
-    # Delete query logs
+        db.query(FeedbackLog).filter(FeedbackLog.query_log_id.in_(query_log_ids)).delete(synchronize_session=False)
     db.query(QueryLog).filter(QueryLog.conversation_id == conv_id).delete(synchronize_session=False)
 
-    # Delete document access logs referencing files of this conversation
-    files = db.query(ConversationFile).filter(ConversationFile.conversation_id == conv_id).all()
-    file_ids = [f.id for f in files]
-    if file_ids:
-        db.query(DocumentAccessLog).filter(DocumentAccessLog.file_id.in_(file_ids)).delete(synchronize_session=False)
-
-    # Delete physical files and ConversationFile records
-    for f in files:
-        if os.path.exists(f.file_path):
-            os.remove(f.file_path)
-        db.delete(f)
-
-    # Delete conversation allowed files
-    db.query(ConversationAllowedFile).filter(ConversationAllowedFile.conversation_id == conv_id).delete()
-
-    # Delete messages
-    db.query(Message).filter(Message.conversation_id == conv_id).delete()
-
-    # Delete conversation
+    db.query(ConversationAllowedFile).filter(ConversationAllowedFile.conversation_id == conv_id).delete(synchronize_session=False)
+    db.query(Message).filter(Message.conversation_id == conv_id).delete(synchronize_session=False)
     db.delete(conv)
     db.commit()
-    return {"message": "Conversation deleted"}
+    
+    msg = "Conversation and all associated files (and Qdrant vectors) deleted" if delete_files else "Conversation deleted, files retained"
+    return {"message": msg}
+    
 
 @router.put("/{conv_id}")
 def update_conversation_name(
-    conv_id: int,
+    conv_id: str,
     data: ConversationNameRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -126,7 +161,7 @@ def update_conversation_name(
 # ==================== Messages ====================
 @router.get("/{conv_id}/messages")
 def get_messages(
-    conv_id: int,
+    conv_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -140,14 +175,14 @@ def get_messages(
     msgs = db.query(Message).filter(Message.conversation_id == conv_id).order_by(Message.timestamp).all()
     return {
         "messages": [
-            {"role": m.role, "content": m.content, "timestamp": m.timestamp}
+            {"id": m.id, "role": m.role, "content": m.content, "timestamp": m.timestamp, "citations": m.citations}
             for m in msgs
         ]
     }
 
 @router.post("/{conv_id}/messages")
 def add_message(
-    conv_id: int,
+    conv_id: str,
     data: dict,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -172,7 +207,7 @@ def add_message(
 # ==================== Files in conversation ====================
 @router.get("/{conv_id}/files")
 def get_conversation_files(
-    conv_id: int,
+    conv_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -200,7 +235,7 @@ def get_conversation_files(
 
 @router.post("/{conv_id}/allowed-files")
 def set_allowed_files(
-    conv_id: int,
+    conv_id: str,
     file_ids: List[str],
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -224,7 +259,7 @@ def set_allowed_files(
 # ==================== Conversation Settings ====================
 @router.put("/{conv_id}/settings")
 def update_conversation_settings(
-    conv_id: int,
+    conv_id: str,
     data: ConversationSettingsRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -261,7 +296,7 @@ def update_conversation_settings(
 
 @router.get("/{conv_id}")
 def get_conversation(
-    conv_id: int,
+    conv_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):

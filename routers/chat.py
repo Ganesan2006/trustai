@@ -23,7 +23,7 @@ class SearchScope(BaseModel):
 
 class ChatRequest(BaseModel):
     input: str
-    conversation_id: int
+    conversation_id: str
     search_scope: Optional[SearchScope] = None
 
 class Citation(BaseModel):
@@ -34,7 +34,7 @@ class Citation(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
-    conversation_id: int
+    conversation_id: str
     citations: List[Citation] = []
     query_log_id: int 
 
@@ -175,8 +175,10 @@ def extract_citations(chunks: List) -> List[Citation]:
         ))
     return citations
 
+from fastapi.responses import StreamingResponse
+
 # ---------- Main Chat Endpoint ----------
-@router.post("/", response_model=ChatResponse)
+@router.post("/")
 async def chat(
     data: ChatRequest,
     request: Request,
@@ -195,13 +197,10 @@ async def chat(
     prev_msgs = db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.timestamp).all()
     chat_history = []
     i = 0
-    while i < len(prev_msgs):
-        if prev_msgs[i].role == 'user':
-            user_msg = prev_msgs[i].content
-            bot_msg = prev_msgs[i+1].content if i+1 < len(prev_msgs) and prev_msgs[i+1].role == 'bot' else ""
+    while i < len(prev_msgs) - 1:
+        if prev_msgs[i].role == 'user' and prev_msgs[i+1].role == 'bot':
+            chat_history.append((prev_msgs[i].content, prev_msgs[i+1].content))
             i += 2
-            if user_msg and bot_msg:
-                chat_history.append((user_msg, bot_msg))
         else:
             i += 1
 
@@ -212,7 +211,7 @@ async def chat(
     # Build filter and retrieve chunks
     q_filter = build_filter_from_scope(data.search_scope, current_user, conv, db)
     llm = llmProcessor(user_id=current_user.id, db=db)
-    retrieved_chunks = llm.hybrid_search(org_short_id, data.input, q_filter, top_k=15, final_k=15)
+    retrieved_chunks = await llm.hybrid_search(org_short_id, data.input, q_filter, top_k=15, final_k=15)
 
     # Extract citations
     citations = extract_citations(retrieved_chunks)
@@ -242,51 +241,79 @@ Answer:"""
     if chat_history:
         history_str = "\n".join([f"Human: {h}\nAI: {a}" for h, a in chat_history])
         condense_prompt = llm.condense_prompt.format(chat_history=history_str, input=data.input)
-        raw = llm.LLM.invoke(condense_prompt)
+        raw = await llm.LLM.ainvoke(condense_prompt)
         user_input = raw.content.strip() if hasattr(raw, 'content') else str(raw).strip()
+        
     print(f"[DEBUG] Returning citations: {citations}")
-    # Generate answer
-    answer = llm.LLM.invoke(prompt)
-    bot_answer = answer.content if hasattr(answer, 'content') else str(answer)
+    
+    async def response_streamer():
+        bot_answer_chunks = []
+        try:
+            async for chunk in llm.LLM.astream(prompt):
+                if hasattr(chunk, 'content'):
+                    text = chunk.content
+                elif isinstance(chunk, str):
+                    text = chunk
+                elif isinstance(chunk, dict) and 'answer' in chunk:
+                    text = chunk['answer']
+                else:
+                    text = str(chunk)
+                
+                if text:
+                    bot_answer_chunks.append(text)
+                    # SSE format
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': text})}\n\n"
+                    
+            bot_answer = "".join(bot_answer_chunks)
+            
+            # Save messages
+            def save_to_db():
+                user_msg = Message(conversation_id=conv.id, role='user', content=data.input)
+                bot_msg = Message(conversation_id=conv.id, role='bot', content=bot_answer, citations=[c.dict() for c in citations])
+                db.add(user_msg)
+                db.add(bot_msg)
+                db.commit()
+                db.refresh(bot_msg)
 
-    # Save messages
-    user_msg = Message(conversation_id=conv.id, role='user', content=data.input)
-    bot_msg = Message(conversation_id=conv.id, role='bot', content=bot_answer)
-    db.add(user_msg)
-    db.add(bot_msg)
-    db.commit()
-    db.refresh(bot_msg)
+                # Log query for feedback
+                query_log = QueryLog(
+                    organization_id=current_user.organization_id,
+                    user_id=current_user.id,
+                    conversation_id=conv.id,
+                    question=data.input,
+                    answer=bot_answer,
+                    retrieved_chunks=len(retrieved_chunks),
+                    confidence_score=sum((c.similarity or 0.0) for c in citations)/len(citations) if citations else 0,
+                    created_at=datetime.utcnow()
+                )
+                db.add(query_log)
+                db.commit()
 
-    # Log query for feedback
-    query_log = QueryLog(
-        organization_id=current_user.organization_id,
-        user_id=current_user.id,
-        conversation_id=conv.id,
-        question=data.input,
-        answer=bot_answer,
-        retrieved_chunks=len(retrieved_chunks),
-        confidence_score=sum(c.similarity for c in citations)/len(citations) if citations else 0,
-        created_at=datetime.utcnow()
-    )
-    db.add(query_log)
-    db.commit()
-    query_log_id = query_log.id
+                # Update conversation name if first message
+                msg_count = db.query(Message).filter(Message.conversation_id == conv.id).count()
+                if conv.name == 'New chat' and msg_count == 2:
+                    conv.name = data.input[:30] + ('…' if len(data.input) > 30 else '')
+                    db.commit()
+                return query_log.id
 
-    # Update conversation name if first message
-    msg_count = db.query(Message).filter(Message.conversation_id == conv.id).count()
-    if conv.name == 'New chat' and msg_count == 2:
-        conv.name = data.input[:30] + ('…' if len(data.input) > 30 else '')
-        db.commit()
+            query_log_id = await run_in_threadpool(save_to_db)
 
-    return ChatResponse(
-        response=bot_answer,
-        conversation_id=conv.id,
-        citations=citations,
-        query_log_id=query_log.id
-    )
+            # Send final payload
+            final_payload = {
+                "type": "final",
+                "citations": [c.dict() for c in citations],
+                "query_log_id": query_log_id,
+                "conversation_id": conv.id
+            }
+            yield f"data: {json.dumps(final_payload)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+            
+    return StreamingResponse(response_streamer(), media_type="text/event-stream")
+
 
 @router.post("/activate/{conv_id}")
-def activate_conversation(conv_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def activate_conversation(conv_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     conv = db.query(Conversation).filter(Conversation.id == conv_id, Conversation.user_id == current_user.id).first()
     if not conv:
         raise HTTPException(404, "Conversation not found")

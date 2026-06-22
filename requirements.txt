@@ -1,4 +1,4 @@
-psycopg2
+psycopg2-binary
 langchain
 langchain-core
 langchain-classic
@@ -47,3 +47,5 @@ langchain-anthropic
 langchain-google-genai
 boto3
 supabase
+pydantic-settings
+nest-asyncio
