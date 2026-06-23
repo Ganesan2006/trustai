@@ -309,7 +309,12 @@ Answer:"""
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
             
-    return StreamingResponse(response_streamer(), media_type="text/event-stream")
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no"
+    }
+    return StreamingResponse(response_streamer(), media_type="text/event-stream", headers=headers)
 
 
 @router.post("/activate/{conv_id}")
