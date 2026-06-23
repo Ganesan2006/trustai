@@ -50,3 +50,4 @@ supabase
 pydantic-settings
 nest-asyncio
 fastembed
+sse-starlette

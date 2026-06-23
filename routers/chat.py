@@ -175,7 +175,7 @@ def extract_citations(chunks: List) -> List[Citation]:
         ))
     return citations
 
-from fastapi.responses import StreamingResponse
+from sse_starlette.sse import EventSourceResponse
 
 # ---------- Main Chat Endpoint ----------
 @router.post("/")
@@ -261,8 +261,8 @@ Answer:"""
                 
                 if text:
                     bot_answer_chunks.append(text)
-                    # SSE format
-                    yield f"data: {json.dumps({'type': 'chunk', 'content': text})}\n\n"
+                    # SSE format via EventSourceResponse
+                    yield json.dumps({'type': 'chunk', 'content': text})
                     
             bot_answer = "".join(bot_answer_chunks)
             
@@ -305,16 +305,11 @@ Answer:"""
                 "query_log_id": query_log_id,
                 "conversation_id": conv.id
             }
-            yield f"data: {json.dumps(final_payload)}\n\n"
+            yield json.dumps(final_payload)
         except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+            yield json.dumps({'type': 'error', 'content': str(e)})
             
-    headers = {
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        "X-Accel-Buffering": "no"
-    }
-    return StreamingResponse(response_streamer(), media_type="text/event-stream", headers=headers)
+    return EventSourceResponse(response_streamer())
 
 
 @router.post("/activate/{conv_id}")
