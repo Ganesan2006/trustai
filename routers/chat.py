@@ -176,6 +176,15 @@ def extract_citations(chunks: List) -> List[Citation]:
     return citations
 
 from sse_starlette.sse import EventSourceResponse
+import time
+
+DEBUG_CHAT = True
+
+def log_debug(step: str, data: any = None):
+    if DEBUG_CHAT:
+        print(f"[CHAT DEBUG] {step}")
+        if data is not None:
+            print(f"  -> {data}")
 
 # ---------- Main Chat Endpoint ----------
 @router.post("/")
@@ -192,8 +201,12 @@ async def chat(
     ).first()
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
+        
+    log_debug("Started Chat Request", f"Conv ID: {conv.id}")
+
     # Chat history (optional, for condensing)
     prev_msgs = db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.timestamp).all()
+    log_debug("Fetched Previous Messages", f"Count: {len(prev_msgs)}")
     chat_history = []
     i = 0
     while i < len(prev_msgs) - 1:
@@ -207,10 +220,21 @@ async def chat(
     if not org_short_id:
         raise HTTPException(status_code=500, detail="Organization not resolved")
 
+    log_debug("Resolved Organization", org_short_id)
+
     # Build filter and retrieve chunks
+    log_debug("Building Qdrant scope filter...")
     q_filter = build_filter_from_scope(data.search_scope, current_user, conv, db)
     llm = llmProcessor(user_id=current_user.id, db=db)
-    retrieved_chunks = await llm.hybrid_search(org_short_id, data.input, q_filter, top_k=15, final_k=15)
+    
+    log_debug("Executing Hybrid Search in Qdrant...")
+    start_time = time.time()
+    try:
+        retrieved_chunks = await llm.hybrid_search(org_short_id, data.input, q_filter, top_k=15, final_k=15)
+        log_debug(f"Hybrid Search completed in {time.time() - start_time:.2f}s", f"Retrieved {len(retrieved_chunks)} chunks")
+    except Exception as e:
+        log_debug("ERROR during Hybrid Search", str(e))
+        raise
 
     # Extract citations
     citations = extract_citations(retrieved_chunks)
@@ -238,18 +262,30 @@ Answer:"""
     # Rewrite with history (optional)
     user_input = data.input
     if chat_history:
+        log_debug("Condensing prompt with chat history...")
         history_str = "\n".join([f"Human: {h}\nAI: {a}" for h, a in chat_history])
         condense_prompt = llm.condense_prompt.format(chat_history=history_str, input=data.input)
-        raw = await llm.LLM.ainvoke(condense_prompt)
-        user_input = raw.content.strip() if hasattr(raw, 'content') else str(raw).strip()
+        try:
+            raw_condense = await llm.LLM.ainvoke(condense_prompt)
+            user_input = raw_condense.content.strip() if hasattr(raw_condense, 'content') else str(raw_condense).strip()
+            log_debug("Prompt condensed successfully", user_input)
+        except Exception as e:
+            log_debug("ERROR during LLM condense_prompt", str(e))
+            raise
         
-    print(f"[DEBUG] Returning citations: {citations}")
+    log_debug("Citations to be returned", citations)
     
     async def response_streamer():
+        log_debug("Started response_streamer execution...")
         bot_answer_chunks = []
         try:
+            log_debug("Invoking LLM for final answer...")
+            start_time = time.time()
+            
             # Use ainvoke as requested to bypass streaming connection errors
             raw = await llm.LLM.ainvoke(prompt)
+            
+            log_debug(f"LLM ainvoke completed in {time.time() - start_time:.2f}s")
             if hasattr(raw, 'content'):
                 bot_answer = raw.content
             elif isinstance(raw, str):
@@ -264,9 +300,11 @@ Answer:"""
                 yield json.dumps({'type': 'chunk', 'content': bot_answer})
                     
             bot_answer = "".join(bot_answer_chunks)
+            log_debug("Prepared final bot answer for DB storage")
             
             # Save messages
             def save_to_db():
+                log_debug("Saving conversation to DB inside threadpool...")
                 user_msg = Message(conversation_id=conv.id, role='user', content=data.input)
                 bot_msg = Message(conversation_id=conv.id, role='bot', content=bot_answer, citations=[c.dict() for c in citations])
                 db.add(user_msg)
@@ -295,9 +333,12 @@ Answer:"""
                     db.commit()
                 return query_log.id
 
+            log_debug("Initiating threadpool DB save...")
             query_log_id = await run_in_threadpool(save_to_db)
+            log_debug("DB Save complete", f"Query Log ID: {query_log_id}")
 
             # Send final payload
+            log_debug("Yielding final payload to SSE...")
             final_payload = {
                 "type": "final",
                 "citations": [c.dict() for c in citations],
@@ -305,7 +346,11 @@ Answer:"""
                 "conversation_id": conv.id
             }
             yield json.dumps(final_payload)
+            log_debug("response_streamer execution finished normally.")
         except Exception as e:
+            log_debug("EXCEPTION CAUGHT IN response_streamer", str(e))
+            import traceback
+            log_debug("Traceback", traceback.format_exc())
             yield json.dumps({'type': 'error', 'content': str(e)})
             
     return EventSourceResponse(response_streamer())
