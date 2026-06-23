@@ -192,7 +192,6 @@ async def chat(
     ).first()
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
-
     # Chat history (optional, for condensing)
     prev_msgs = db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.timestamp).all()
     chat_history = []
@@ -249,20 +248,23 @@ Answer:"""
     async def response_streamer():
         bot_answer_chunks = []
         try:
-            async for chunk in llm.LLM.astream(prompt):
-                if hasattr(chunk, 'content'):
-                    text = chunk.content
-                elif isinstance(chunk, str):
-                    text = chunk
-                elif isinstance(chunk, dict) and 'answer' in chunk:
-                    text = chunk['answer']
-                else:
-                    text = str(chunk)
-                
-                if text:
-                    bot_answer_chunks.append(text)
-                    # SSE format via EventSourceResponse
-                    yield json.dumps({'type': 'chunk', 'content': text})
+            async for event in llm.LLM.astream_events(prompt, version="v2"):
+                kind = event.get("event")
+                if kind in ["on_chat_model_stream", "on_llm_stream"]:
+                    chunk = event["data"]["chunk"]
+                    if hasattr(chunk, 'content'):
+                        text = chunk.content
+                    elif isinstance(chunk, str):
+                        text = chunk
+                    elif isinstance(chunk, dict) and 'answer' in chunk:
+                        text = chunk['answer']
+                    else:
+                        text = str(chunk)
+                    
+                    if text:
+                        bot_answer_chunks.append(text)
+                        # SSE format via EventSourceResponse
+                        yield json.dumps({'type': 'chunk', 'content': text})
                     
             bot_answer = "".join(bot_answer_chunks)
             
