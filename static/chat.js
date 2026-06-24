@@ -507,50 +507,17 @@
 
             const contentDiv = botDiv.querySelector('.markdown-body');
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder('utf-8');
-            let buffer = '';
-            let fullText = '';
+            const data = await response.json();
+            
+            // Render the final response immediately
+            botMsgObj.content = data.response;
+            botMsgObj.citations = data.citations || [];
+            botMsgObj.query_log_id = data.query_log_id;
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n\n');
-                buffer = lines.pop();
-
-                for (let line of lines) {
-                    line = line.trim();
-                    if (line.startsWith('data:')) {
-                        const dataStr = line.substring(5).trim();
-                        if (!dataStr) continue;
-                        try {
-                            const data = JSON.parse(dataStr);
-                            if (data.type === 'chunk') {
-                                fullText += data.content;
-                                let html = await marked.parse(fullText);
-                                html = DOMPurify.sanitize(html);
-                                html = html.replace(/\[(\d+)\]/g, (match, num) => `<sup class="citation-number" data-idx="${num}">[${num}]</sup>`);
-                                contentDiv.innerHTML = html;
-                                document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight;
-                            } else if (data.type === 'final') {
-                                botMsgObj.content = fullText;
-                                botMsgObj.citations = data.citations || [];
-                                botMsgObj.query_log_id = data.query_log_id;
-
-                                const finalBotDiv = await createMessageElement(botMsgObj);
-                                document.getElementById('chatContainer').replaceChild(finalBotDiv, botDiv);
-                                document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight;
-                            } else if (data.type === 'error') {
-                                showToast('Error from server: ' + data.content, 'error');
-                            }
-                        } catch (e) {
-                            console.error('Error parsing SSE data', e, dataStr);
-                        }
-                    }
-                }
-            }
+            const finalBotDiv = await createMessageElement(botMsgObj);
+            document.getElementById('chatContainer').replaceChild(finalBotDiv, botDiv);
+            document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight;
+            
             await loadConversations();
         } catch (error) {
             console.error("Chat Error:", error);

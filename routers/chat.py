@@ -275,87 +275,67 @@ Answer:"""
         
     log_debug("Citations to be returned", citations)
     
-    async def response_streamer():
-        log_debug("Started response_streamer execution...")
-        bot_answer_chunks = []
-        try:
-            log_debug("Invoking LLM for final answer...")
-            start_time = time.time()
+    log_debug("Invoking LLM for final answer...")
+    start_time = time.time()
+    
+    # Fully synchronous (non-streaming) LLM execution
+    try:
+        raw = await llm.LLM.ainvoke(prompt)
+        log_debug(f"LLM ainvoke completed in {time.time() - start_time:.2f}s")
+        if hasattr(raw, 'content'):
+            bot_answer = raw.content
+        elif isinstance(raw, str):
+            bot_answer = raw
+        elif isinstance(raw, dict) and 'answer' in raw:
+            bot_answer = raw['answer']
+        else:
+            bot_answer = str(raw)
             
-            # SSE streaming using astream_events
-            async for event in llm.LLM.astream_events(prompt, version="v2"):
-                kind = event.get("event")
-                if kind in ["on_chat_model_stream", "on_llm_stream"]:
-                    chunk = event["data"]["chunk"]
-                    if hasattr(chunk, 'content'):
-                        text = chunk.content
-                    elif isinstance(chunk, str):
-                        text = chunk
-                    elif isinstance(chunk, dict) and 'answer' in chunk:
-                        text = chunk['answer']
-                    else:
-                        text = str(chunk)
-                    
-                    if text:
-                        bot_answer_chunks.append(text)
-                        # SSE format via EventSourceResponse
-                        yield json.dumps({'type': 'chunk', 'content': text})
-                    
-            bot_answer = "".join(bot_answer_chunks)
-            log_debug("Prepared final bot answer for DB storage")
-            
-            # Save messages
-            def save_to_db():
-                log_debug("Saving conversation to DB inside threadpool...")
-                user_msg = Message(conversation_id=conv.id, role='user', content=data.input)
-                bot_msg = Message(conversation_id=conv.id, role='bot', content=bot_answer, citations=[c.dict() for c in citations])
-                db.add(user_msg)
-                db.add(bot_msg)
-                db.commit()
-                db.refresh(bot_msg)
+        log_debug("Prepared final bot answer for DB storage")
+        
+        # Save messages
+        log_debug("Saving conversation to DB...")
+        user_msg = Message(conversation_id=conv.id, role='user', content=data.input)
+        bot_msg = Message(conversation_id=conv.id, role='bot', content=bot_answer, citations=[c.dict() for c in citations])
+        db.add(user_msg)
+        db.add(bot_msg)
+        db.commit()
+        db.refresh(bot_msg)
 
-                # Log query for feedback
-                query_log = QueryLog(
-                    organization_id=current_user.organization_id,
-                    user_id=current_user.id,
-                    conversation_id=conv.id,
-                    question=data.input,
-                    answer=bot_answer,
-                    retrieved_chunks=len(retrieved_chunks),
-                    confidence_score=sum((c.similarity or 0.0) for c in citations)/len(citations) if citations else 0,
-                    created_at=datetime.utcnow()
-                )
-                db.add(query_log)
-                db.commit()
+        # Log query for feedback
+        query_log = QueryLog(
+            organization_id=current_user.organization_id,
+            user_id=current_user.id,
+            conversation_id=conv.id,
+            question=data.input,
+            answer=bot_answer,
+            retrieved_chunks=len(retrieved_chunks),
+            confidence_score=sum((c.similarity or 0.0) for c in citations)/len(citations) if citations else 0,
+            created_at=datetime.utcnow()
+        )
+        db.add(query_log)
+        db.commit()
 
-                # Update conversation name if first message
-                msg_count = db.query(Message).filter(Message.conversation_id == conv.id).count()
-                if conv.name == 'New chat' and msg_count == 2:
-                    conv.name = data.input[:30] + ('…' if len(data.input) > 30 else '')
-                    db.commit()
-                return query_log.id
+        # Update conversation name if first message
+        msg_count = db.query(Message).filter(Message.conversation_id == conv.id).count()
+        if conv.name == 'New chat' and msg_count == 2:
+            conv.name = data.input[:30] + ('…' if len(data.input) > 30 else '')
+            db.commit()
 
-            log_debug("Initiating threadpool DB save...")
-            query_log_id = await run_in_threadpool(save_to_db)
-            log_debug("DB Save complete", f"Query Log ID: {query_log_id}")
+        log_debug("DB Save complete", f"Query Log ID: {query_log.id}")
 
-            # Send final payload
-            log_debug("Yielding final payload to SSE...")
-            final_payload = {
-                "type": "final",
-                "citations": [c.dict() for c in citations],
-                "query_log_id": query_log_id,
-                "conversation_id": conv.id
-            }
-            yield json.dumps(final_payload)
-            log_debug("response_streamer execution finished normally.")
-        except Exception as e:
-            log_debug("EXCEPTION CAUGHT IN response_streamer", str(e))
-            import traceback
-            log_debug("Traceback", traceback.format_exc())
-            yield json.dumps({'type': 'error', 'content': str(e)})
-            
-    return EventSourceResponse(response_streamer())
+        return ChatResponse(
+            response=bot_answer,
+            conversation_id=conv.id,
+            citations=citations,
+            query_log_id=query_log.id
+        )
+
+    except Exception as e:
+        log_debug("EXCEPTION CAUGHT IN CHAT ENDPOINT", str(e))
+        import traceback
+        log_debug("Traceback", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/activate/{conv_id}")
