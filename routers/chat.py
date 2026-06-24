@@ -282,22 +282,24 @@ Answer:"""
             log_debug("Invoking LLM for final answer...")
             start_time = time.time()
             
-            # Use ainvoke as requested to bypass streaming connection errors
-            raw = await llm.LLM.ainvoke(prompt)
-            
-            log_debug(f"LLM ainvoke completed in {time.time() - start_time:.2f}s")
-            if hasattr(raw, 'content'):
-                bot_answer = raw.content
-            elif isinstance(raw, str):
-                bot_answer = raw
-            elif isinstance(raw, dict) and 'answer' in raw:
-                bot_answer = raw['answer']
-            else:
-                bot_answer = str(raw)
-            
-            if bot_answer:
-                bot_answer_chunks.append(bot_answer)
-                yield json.dumps({'type': 'chunk', 'content': bot_answer})
+            # SSE streaming using astream_events
+            async for event in llm.LLM.astream_events(prompt, version="v2"):
+                kind = event.get("event")
+                if kind in ["on_chat_model_stream", "on_llm_stream"]:
+                    chunk = event["data"]["chunk"]
+                    if hasattr(chunk, 'content'):
+                        text = chunk.content
+                    elif isinstance(chunk, str):
+                        text = chunk
+                    elif isinstance(chunk, dict) and 'answer' in chunk:
+                        text = chunk['answer']
+                    else:
+                        text = str(chunk)
+                    
+                    if text:
+                        bot_answer_chunks.append(text)
+                        # SSE format via EventSourceResponse
+                        yield json.dumps({'type': 'chunk', 'content': text})
                     
             bot_answer = "".join(bot_answer_chunks)
             log_debug("Prepared final bot answer for DB storage")
