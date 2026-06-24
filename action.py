@@ -88,7 +88,7 @@ class llmProcessor:
                         ApiKey.is_active == True
                     ).first()
                 if api_key_record:
-                    api_key = decrypt_api_key(api_key_record.api_key_encrypted)
+                    api_key = decrypt_api_key(api_key_record.api_key_encrypted).strip()
                     if assignment.provider == ProviderEnum.OPENAI:
                         return ChatOpenAI(
                             model=assignment.model_name,

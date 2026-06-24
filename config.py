@@ -3,6 +3,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import validator
 from typing import Optional
 import urllib.parse
 import dns.resolver
@@ -20,6 +21,12 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_BASE_URL: str = "https://api.osmapi.com/v1/"
     OPENAI_DEFAULT_MODEL: str = "gemma-4-26b-a4b-it"
+    
+    @validator("OPENAI_API_KEY", "QDRANT_API", pre=True)
+    def strip_api_keys(cls, v):
+        if isinstance(v, str):
+            return v.strip()
+        return v
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
