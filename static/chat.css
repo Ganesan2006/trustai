@@ -177,13 +177,15 @@ body.chat-active .greeting-text { opacity: 0; transform: translateY(-20px); poin
     .sidebar-header { margin-top: 60px; }
     .top-controls { top: 16px; right: 16px; }
     .action-btn span:last-child { display: none; }
-    .action-btn { padding: 8px; border-radius: 50%; }
+    .action-btn { padding: 8px; border-radius: 50%; width: 40px; height: 40px; justify-content: center; }
     .chat-container { padding: 80px 16px 160px; }
     .message { gap: 8px; }
     .user-message .bubble, .bot-message .bubble { max-width: 95%; font-size: 15px; }
     .greeting-text { font-size: 1.8rem; }
     .input-area { padding: 0 12px; bottom: 15px; }
-    .input-wrapper { padding: 8px 12px; }
+    .input-wrapper { padding: 8px 12px; gap: 8px; }
+    .send-btn, .file-upload-btn, .scope-toggle-btn { width: 36px; height: 36px; }
+    .material-symbols-outlined { font-size: 20px; }
     .explorer-content { width: 95%; max-height: 90vh; }
     .file-container { grid-template-columns: 1fr; }
 }
@@ -253,4 +255,22 @@ body.chat-active .greeting-text { opacity: 0; transform: translateY(-20px); poin
     border-radius: 12px;
     padding: 8px 12px;
     width: 100%;
+}
+
+/* Extra small devices (phones) */
+@media (max-width: 480px) {
+    .top-controls { top: 12px; right: 12px; gap: 8px; }
+    .action-btn { padding: 6px; width: 36px; height: 36px; }
+    .send-btn, .file-upload-btn, .scope-toggle-btn { width: 32px; height: 32px; }
+    .material-symbols-outlined { font-size: 18px !important; }
+    .input-wrapper { padding: 6px 10px; gap: 6px; border-radius: 24px; }
+    .chat-input { font-size: 14px; padding: 8px 2px; }
+    .greeting-text { font-size: 1.5rem; }
+    .chat-container { padding: 70px 12px 140px; }
+    .bottom-container .search-scope-panel, .bottom-container .file-manager-panel { padding: 12px; }
+    .scope-label { padding: 6px 12px; font-size: 12px; }
+    .avatar { width: 32px; height: 32px; font-size: 10px; }
+    .feedback-btn { padding: 4px 10px; font-size: 12px; }
+    .copy-btn { padding: 4px 10px; font-size: 12px; }
+    body.chat-active .input-area { bottom: 10px; }
 }

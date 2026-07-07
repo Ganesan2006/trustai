@@ -343,6 +343,32 @@ h2 {
     50% { height: 32px; opacity: 1; }
 }
 
+/* --- Top Right Register Button --- */
+.top-right-btn {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+    z-index: 10;
+}
+
+.top-right-btn:hover {
+    background: var(--bg-hover, var(--primary));
+    color: white;
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 150, 190, 0.2);
+}
+
 /* Responsive Design */
 @media (max-width: 960px) {
     .split-layout {
