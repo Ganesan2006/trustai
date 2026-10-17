@@ -21,3 +21,4 @@ jobs:
           huggingface_repo_id: ganesan27/trustai
           hf_token: ${{ secrets.HF_TOKEN }}
           space_sdk: docker
+
