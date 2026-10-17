@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustAI - Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="/static/admin/admin.css" rel="stylesheet">
+    <script>
+        // Init theme
+        const savedTheme = localStorage.getItem('trustai_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+
+<div id="toastContainer"></div>
+
+<div class="container">
+    <h1><span style="font-size: 28px;">⚙️</span> Admin Dashboard</h1>
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="users">Users</button>
+        <button class="tab-btn" data-tab="departments">Departments</button>
+        <button class="tab-btn" data-tab="teams">Teams</button>
+        <button class="tab-btn" data-tab="api-keys">API Keys</button>
+        <button class="tab-btn" data-tab="models">Model Assignments</button>
+        <button class="tab-btn" data-tab="files">Files</button>
+    </div>
+
+    <!-- Users Tab (with Team column) -->
+    <div id="users-tab" class="tab-content active">
+        <h2>Employees</h2>
+        <div style="overflow-x: auto;">
+            <table id="users-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Department</th>
+                        <th>Team</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Departments Tab -->
+    <div id="departments-tab" class="tab-content">
+        <h2>Departments</h2>
+        <form id="add-dept-form">
+            <input type="text" name="name" placeholder="Department Name" required>
+            <input type="text" name="description" placeholder="Description (optional)">
+            <button type="submit">Add Department</button>
+        </form>
+        <div style="overflow-x: auto;">
+            <table id="departments-table">
+                <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Teams Tab -->
+    <div id="teams-tab" class="tab-content">
+        <h2>Teams</h2>
+        <form id="add-team-form">
+            <select name="department_id" required>
+                <option value="">Select Department</option>
+            </select>
+            <input type="text" name="name" placeholder="Team Name" required>
+            <input type="text" name="description" placeholder="Description (optional)">
+            <button type="submit">Add Team</button>
+        </form>
+        <div style="overflow-x: auto;">
+            <table id="teams-table">
+                <thead><tr><th>ID</th><th>Name</th><th>Department</th><th>Description</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- API Keys Tab -->
+    <div id="api-keys-tab" class="tab-content">
+        <h2>API Keys</h2>
+        <form id="add-api-key-form">
+            <select name="provider" required><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google</option></select>
+            <input type="text" name="api_key" placeholder="API Key" required>
+            <input type="text" name="description" placeholder="Description">
+            <button type="submit">Add Key</button>
+        </form>
+        <div style="overflow-x: auto;"><table id="api-keys-table"><thead><tr><th>Provider</th><th>Description</th><th>Created</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <!-- Model Assignments Tab -->
+    <div id="models-tab" class="tab-content">
+        <h2>Model Assignments</h2>
+        <form id="assign-model-form">
+            <select id="assign-user-id" required></select>
+            <select name="provider" required><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google</option></select>
+            <input type="text" name="model_name" placeholder="Model name (e.g., gpt-4)" required>
+            <button type="submit">Assign</button>
+        </form>
+        <div style="overflow-x: auto;"><table id="assignments-table"><thead><tr><th>User</th><th>Provider</th><th>Model</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <!-- Files Tab -->
+    <div id="files-tab" class="tab-content">
+        <h2>Uploaded Files</h2>
+        <div><select id="file-user-filter"><option value="">All Users</option></select></div>
+        <div style="overflow-x: auto;"><table id="files-table"><thead><tr><th>Filename</th><th>Uploaded By</th><th>Uploaded At</th><th>Size (KB)</th></tr></thead><tbody></tbody></table></div>
+    </div>
+</div>
+
+<script src="/static/admin/admin.js"></script>
+</body>
+</html>

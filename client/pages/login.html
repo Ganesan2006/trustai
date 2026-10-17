@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustAI - Login & Signup</title>
+    <link href="/static/auth/login.css" rel="stylesheet">
+    <script>
+        // Init theme
+        const savedTheme = localStorage.getItem('trustai_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+<div class="split-layout">
+    <!-- Left Brand Panel -->
+    <div class="brand-panel">
+        <div class="brand-logo">
+            <span style="font-size: 24px;">✨</span> TrustAI
+        </div>
+        <div class="brand-text">
+            <h1>Elevate your team's document intelligence.</h1>
+            <p>Join top organizations using TrustAI to seamlessly interact with documents, uncover insights, and accelerate workflows.</p>
+        </div>
+        <div class="brand-footer">
+            <div class="avatars">
+                <div class="avatar"></div>
+                <div class="avatar"></div>
+                <div class="avatar">10k+</div>
+            </div>
+            <span>Trusted by forward-thinking teams</span>
+        </div>
+    </div>
+
+    <!-- Right Form Panel -->
+    <div class="form-panel" style="position: relative;">
+        <!-- Top Right Register Button -->
+        <a href="/org/register" class="top-right-btn">Organisation Register</a>
+        
+        <div class="container">
+            <div class="toggle-buttons">
+                <button class="toggle-btn active" id="loginTab">Log In</button>
+                <button class="toggle-btn" id="signupTab">Sign Up</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm" class="form active-form">
+                <h2>Welcome Back</h2>
+                <p class="form-subtitle">Enter your details to access your workspace.</p>
+                <div class="error-message" id="loginError"></div>
+                <form id="login">
+                    <div class="input-group">
+                        <label>Email Address</label>
+                        <input type="email" id="loginEmail" placeholder="name@company.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn">Log In</button>
+                </form>
+                <div class="info-text">
+                    Don't have an account? <a href="#" id="switchToSignup">Create one now</a>
+                </div>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupForm" class="form">
+                <h2>Create an Account</h2>
+                <p class="form-subtitle">Start organizing your knowledge base today.</p>
+                <div class="error-message" id="signupError"></div>
+                <form id="signup">
+                    <div class="input-group">
+                        <label>Full Name</label>
+                        <input type="text" id="signupName" placeholder="Jane Doe" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Email Address</label>
+                        <input type="email" id="signupEmail" placeholder="jane@company.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Organization ID</label>
+                        <input type="text" id="signupOrg" placeholder="e.g., trustai_corp" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Department (Optional)</label>
+                        <select id="signupDepartment">
+                            <option value="">Select Department</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" id="signupPassword" placeholder="Create a strong password" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Confirm Password</label>
+                        <input type="password" id="signupConfirm" placeholder="Confirm your password" required>
+                    </div>
+                    <button type="submit" class="btn">Create Account</button>
+                </form>
+                <div class="info-text">
+                    Already have an account? <a href="#" id="switchToLogin">Log in instead</a>
+                </div>
+            </div>
+          <h6>for demo user :</h6> <br>
+          <h6>username:  admin@testcorp.com</h6>
+          <h6>password : 1234567</h6>
+        </div>
+    </div>
+</div>
+
+<script src="/static/auth/login.js"></script>
+</body>
+</html>

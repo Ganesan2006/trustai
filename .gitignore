@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.python-version
+pyproject.toml
+uv.lock
+
+# Virtual environments
+.venv
+.env
+
+#supporting system
+~
+uploads/
+*.pdf
+*.docx
+*.png
+*.jpg
+*.jpeg
+uploads/
+uploads/
+uploads/

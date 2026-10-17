@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard – RAG Enterprise</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="/static/admin/admin_dashboard.css" rel="stylesheet">
+    <script>
+        // Init theme
+        const savedTheme = localStorage.getItem('trustai_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+<div class="dashboard-container">
+    <div class="header">
+        <h1>📊 RAG Enterprise Admin</h1>
+        <div class="company-badge" id="companyName">Loading...</div>
+    </div>
+
+    <div class="tabs" id="tabs">
+        <button class="tab-btn active" data-tab="overview">🏠 Overview</button>
+        <button class="tab-btn" data-tab="users">👥 Users</button>
+        <button class="tab-btn" data-tab="documents">📄 Documents</button>
+        <button class="tab-btn" data-tab="ai-usage">🤖 AI Usage</button>
+        <button class="tab-btn" data-tab="retrieval">🔍 Retrieval</button>
+        <button class="tab-btn" data-tab="knowledge">📚 Knowledge Gaps</button>
+        <button class="tab-btn" data-tab="feedback">💬 Feedback</button>
+        <button class="tab-btn" data-tab="security">🛡️ Security</button>
+        <button class="tab-btn" data-tab="organization">🏢 Organization</button>
+    </div>
+
+    <!-- ==================== Overview Tab ==================== -->
+    <div id="overview-tab" class="tab-content active">
+        <div class="stats-grid" id="overviewStats"></div>
+        <div class="chart-row">
+            <div class="chart-card"><h3>📈 Query Trend (Last 7 Days)</h3><canvas id="trendChart"></canvas></div>
+            <div class="chart-card"><h3>💰 AI Cost by Provider</h3><canvas id="costChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- ==================== Users Tab ==================== -->
+    <div id="users-tab" class="tab-content">
+        <div class="stats-grid" id="userStats"></div>
+        <div class="chart-row">
+            <div class="chart-card"><h3>👥 Department Wise Users</h3><canvas id="deptChart"></canvas></div>
+            <div class="chart-card"><h3>🔥 Most Active Users</h3><table id="activeUsersTable"><tbody></tbody></table></div>
+        </div>
+        <div class="chart-card"><h3>📋 All Users</h3><div style="overflow-x: auto;"><table id="usersTable"><thead><tr><th>Name</th><th>Email</th><th>Department</th><th>Team</th><th>Role</th><th>Queries</th></tr></thead><tbody></tbody></table></div></div>
+    </div>
+
+    <!-- ==================== Documents Tab ==================== -->
+    <div id="documents-tab" class="tab-content">
+        <div class="stats-grid" id="docStats"></div>
+        <div class="chart-row">
+            <div class="chart-card"><h3>📂 File Types</h3><canvas id="fileTypeChart"></canvas></div>
+            <div class="chart-card"><h3>🏢 Department Wise Files</h3><canvas id="deptFilesChart"></canvas></div>
+        </div>
+        <div class="chart-card"><h3>📄 Recent Uploads</h3><table id="recentUploadsTable"><tbody></tbody></table></div>
+    </div>
+
+    <!-- ==================== AI Usage Tab ==================== -->
+    <div id="ai-usage-tab" class="tab-content">
+        <div class="stats-grid" id="aiStats"></div>
+        <div class="chart-row">
+            <div class="chart-card"><h3>⏰ Queries Per Hour</h3><canvas id="hourlyChart"></canvas></div>
+            <div class="chart-card"><h3>🔝 Top Questions</h3><table id="topQuestionsTable"><tbody></tbody></table></div>
+        </div>
+    </div>
+
+    <!-- ==================== Retrieval Tab ==================== -->
+    <div id="retrieval-tab" class="tab-content">
+        <div class="stats-grid" id="retrievalStats"></div>
+        <div class="chart-row">
+            <div class="chart-card"><h3>📊 Similarity Distribution</h3><canvas id="simChart"></canvas></div>
+            <div class="chart-card"><h3>📄 Top Retrieved Documents</h3><table id="topRetrievedTable"><tbody></tbody></table></div>
+        </div>
+    </div>
+
+    <!-- ==================== Knowledge Gaps Tab ==================== -->
+    <div id="knowledge-tab" class="tab-content">
+        <div class="stats-grid" id="gapStats"></div>
+        <div class="chart-card"><h3>❓ Top Missing Topics</h3><table id="gapTable"><tbody></tbody></table></div>
+    </div>
+
+    <!-- ==================== Feedback Tab ==================== -->
+    <div id="feedback-tab" class="tab-content">
+        <div class="stats-grid" id="feedbackStats"></div>
+        <div class="chart-card"><h3>📉 Feedback Trend</h3><canvas id="feedbackTrendChart"></canvas></div>
+        <div class="chart-card"><h3>⚠️ Worst Queries</h3><table id="worstQueriesTable"><tbody></tbody></table></div>
+    </div>
+
+    <!-- ==================== Security Tab ==================== -->
+    <div id="security-tab" class="tab-content">
+        <div class="chart-card"><h3>🔒 Recent Access Logs</h3><table id="accessLogsTable"><tbody></tbody></table></div>
+    </div>
+
+    <!-- ==================== Organization Tab ==================== -->
+    <div id="organization-tab" class="tab-content">
+        <div class="stats-grid" id="orgStats"></div>
+        <div class="chart-card"><h3>🔑 API Keys & Models</h3><table id="apiKeysTable"><tbody></tbody></table></div>
+    </div>
+</div>
+
+<script src="/static/admin/admin_dashboard.js"></script>
+</body>
+</html>

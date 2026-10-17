@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TrustAI – Document Q&A with Smart Citations</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="/static/chat/chat.css?v=2" rel="stylesheet">
+</head>
+<body>
+<div class="app">
+    <div id="toastContainer"></div>
+    <button class="mobile-menu-btn" id="mobileMenuBtn"><span class="material-symbols-outlined">menu</span></button>
+    <div class="sidebar" id="appSidebar">
+        <div class="sidebar-header">
+            <button class="new-chat-btn" id="newChatBtn"><span class="material-symbols-outlined">add</span><span class="new-chat-text">New Chat</span></button>
+        </div>
+        <div class="conversation-list" id="convList"></div>
+        <div class="sidebar-footer" id="sidebarProfileBtn">
+            <div class="user-avatar" id="userAvatar"></div>
+            <div class="user-info"><div class="user-name" id="sidebarUserName"></div><div class="user-email" id="sidebarUserEmail"></div></div>
+        </div>
+    </div>
+    <div class="main" id="mainArea">
+        <div class="top-controls" id="topControls">
+            <!-- Admin Dashboard button – shown only if role is org_admin -->
+            <button id="adminDashboardBtn" class="action-btn" style="display: none;" title="Admin Dashboard">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span>Admin</span>
+            </button>
+            <button id="adminPageBtn" class="action-btn" style="display:none;" onclick="window.location.href='/admin'">
+                <span class="material-symbols-outlined">settings</span>
+                <span>Admin Panel</span>
+            </button>
+            <button id="openExplorerBtn" class="action-btn" title="My Files">
+                <span class="material-symbols-outlined">folder_open</span>
+                <span>My Files</span>
+            </button>
+        </div>
+        <div class="chat-container" id="chatContainer">
+            <div id="emptyState" style="text-align: center; margin-top: 60px;">
+                <h1 style="font-family:'Google Sans'; font-size: 24px;">✨ Ask with inline citations</h1>
+                <p style="color: var(--text-muted); margin-top: 8px;">Upload documents and get source‑linked answers</p>
+            </div>
+        </div>
+        <div class="input-area" id="inputArea">
+            <h1 class="greeting-text" id="greetingText">Hi there. What's on your mind?</h1>
+            <div class="bottom-container">
+                <div id="searchScopePanel" class="search-scope-panel">
+                    <div style="font-size:12px; font-weight:600; margin-bottom:12px;">🔍 Search Scope</div>
+                    <div class="scope-options">
+                        <input type="radio" name="scopeType" id="scopeCompany" value="company" class="scope-radio" checked hidden><label for="scopeCompany" class="scope-label">Company</label>
+                        <input type="radio" name="scopeType" id="scopeDepartment" value="department" class="scope-radio" hidden><label for="scopeDepartment" class="scope-label">Department</label>
+                        <input type="radio" name="scopeType" id="scopeTeam" value="team" class="scope-radio" hidden><label for="scopeTeam" class="scope-label">Team</label>
+                        <input type="radio" name="scopeType" id="scopePrivate" value="private" class="scope-radio" hidden><label for="scopePrivate" class="scope-label">Personal</label>
+                    </div>
+                    <div id="scopeDepartmentContainer" style="display:none; margin-top:12px;"><select id="scopeDepartmentSelect" class="metadata-select" multiple size="2"></select></div>
+                    <div id="scopeTeamContainer" style="display:none; margin-top:12px;"><select id="scopeTeamSelect" class="metadata-select" multiple size="2"></select></div>
+                    <div id="scopePrivateContainer" style="display:none; margin-top:12px;"><input type="email" id="scopeUserEmail" class="metadata-select" placeholder="user@company.com"></div>
+                    <div id="scopeAutoInfo" style="font-size:12px; color:var(--primary); margin-top:10px;"></div>
+                </div>
+                <div class="file-manager-panel" id="fileManagerContainer">
+                    <div style="font-size:12px; font-weight:600; margin-bottom:8px;">📎 Upload Files</div>
+                    <div class="file-upload-list" id="fileUploadList" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;"></div>
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:12px; font-weight:500; margin-bottom:6px;">Access Level:</div>
+                        <div class="scope-options" id="uploadScopeOptions">
+                            <!-- built by JS -->
+                        </div>
+                    </div>
+                    <div id="uploadDepartmentContainer" style="display:none; margin-bottom:12px;">
+                        <label style="font-size:12px; display:block; margin-bottom:4px;">Select Department:</label>
+                        <select id="uploadDepartmentSelect" class="metadata-select">
+                            <option value="">-- Select Department --</option>
+                        </select>
+                    </div>
+                    <div id="uploadTeamContainer" style="display:none; margin-bottom:12px;">
+                        <label style="font-size:12px; display:block; margin-bottom:4px;">Select Team:</label>
+                        <select id="uploadTeamSelect" class="metadata-select">
+                            <option value="">-- Select Team --</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:12px; flex-wrap:wrap;">
+                        <button id="executeUploadBtn" class="action-btn" style="padding:6px 16px;">Upload</button>
+                    </div>
+                </div>
+                <div class="input-wrapper">
+                    <button class="file-upload-btn" id="fileUploadBtn" title="Attach Document"><span class="material-symbols-outlined">attach_file</span></button>
+                    <input type="file" id="pdfInput" accept=".pdf,.docx,.txt,.md" multiple hidden />
+                    <textarea class="chat-input" id="chatInput" rows="1" placeholder="Ask TrustAI... (citations appear as [1], [2])"></textarea>
+                    <button class="scope-toggle-btn" id="scopeToggleBtn" title="Search Filters"><span class="material-symbols-outlined">tune</span></button>
+                    <button class="send-btn" id="sendBtn" disabled><span class="material-symbols-outlined">arrow_upward</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Dialog (for delete conversation) -->
+<div id="confirmDialog" class="confirm-dialog-overlay">
+    <div class="confirm-dialog-box">
+        <h3>⚠️ Delete Conversation</h3>
+        <p id="confirmDialogMsg">Choose what to do with the uploaded files:</p>
+        <div class="button-group">
+            <button id="confirmDeleteAll" class="btn-danger">Delete Conversation &amp; All Files</button>
+            <button id="confirmDeleteOnly" class="btn-warning">Delete Conversation Only</button>
+            <button id="confirmCancel" class="btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- File Explorer Modal -->
+<div id="driveExplorerModal" class="overlay-modal">
+    <div class="explorer-content">
+        <div class="explorer-header">
+            <h2><span class="material-symbols-outlined" style="vertical-align: middle;">cloud</span> Accessible Files</h2>
+            <button id="closeExplorerBtn" class="close-btn"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="explorer-body" style="padding: 20px; overflow-y: auto; flex:1;">
+            <div class="file-filter-tabs" id="fileFilterTabs">
+                <button class="filter-tab active" data-filter="all">All</button>
+                <button class="filter-tab" data-filter="company">Company</button>
+                <button class="filter-tab" data-filter="department">Department</button>
+                <button class="filter-tab" data-filter="team">Team</button>
+                <button class="filter-tab" data-filter="private">Personal</button>
+            </div>
+            <div id="explorerSubFilters" class="explorer-sub-filters" style="display: none;">
+                <select id="explorerDynamicFilter" class="metadata-select"></select>
+            </div>
+            <div id="driveFileContainer" class="file-container"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Viewer Modal -->
+<div id="documentViewerModal" class="overlay-modal">
+    <div class="explorer-content" style="width:95%; max-width:1200px; height:90vh; display: flex; flex-direction: column;">
+        <div class="explorer-header">
+            <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
+                <h2 id="viewerFileName" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 18px;">Document Viewer</h2>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <a id="viewerNewTabBtn" href="#" target="_blank" class="action-btn" style="padding: 6px 12px; font-size: 12px; text-decoration: none; display: flex;">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">open_in_new</span><span>Open</span>
+                </a>
+                <button id="closeViewerBtn" class="close-btn"><span class="material-symbols-outlined">close</span></button>
+            </div>
+        </div>
+        <div class="explorer-body" style="padding:0; flex: 1; display: flex; flex-direction: column; background: #fff;">
+            <iframe id="documentIframe" style="width:100%; height:100%; border:none; flex:1;" allowfullscreen></iframe>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Modal -->
+<div id="profileDropdownModal" class="overlay-modal">
+    <div class="explorer-content" style="width:320px; height: auto; max-height: 90vh;">
+        <div class="explorer-header">
+            <h2>Profile Settings</h2>
+            <button id="closeProfileDropdown" class="close-btn"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="explorer-body" style="padding:20px; overflow-y: auto;">
+            <div><strong>Name:</strong> <span id="dropdownUserName"></span></div>
+            <div style="margin-top:12px; word-break: break-all;"><strong>Email:</strong> <span id="dropdownUserEmail"></span></div>
+            <div style="margin-top:12px;"><strong>Theme:</strong>
+                <select id="themeSelectDropdown" style="margin-left:8px; background:var(--bg-input); color:var(--text-main); border: 1px solid var(--border-color); border-radius:8px; padding:6px; width: 100%; margin-top: 8px;">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+            </div>
+            <button id="saveProfileDropdownBtn" style="margin-top:20px; width:100%; justify-content: center;" class="action-btn">Save Settings</button>
+            <button id="logoutBtn" style="margin-top:12px; width:100%; justify-content: center; background:#ef4444; color:white; border:none;" class="action-btn">Log Out</button>
+        </div>
+    </div>
+</div>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/static/chat/chat.js?v=3"></script>
+</body>
+</html>

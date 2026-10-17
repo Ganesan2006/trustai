@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Your Organization | TrustAI</title>
+    <link rel="stylesheet" href="/static/auth/org_login.css">
+    <script>
+        // Init theme
+        const savedTheme = localStorage.getItem('trustai_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>🏢 Organization Registration</h1>
+        <p class="subtitle">Register your company and become the admin</p>
+
+        <div id="errorMsg" class="error-message"></div>
+        <div id="successMsg" class="success-message"></div>
+
+        <form id="orgRegisterForm">
+            <!-- Company Information -->
+            <div class="section-title">Company Information</div>
+            <div class="input-group">
+                <label>Company Name *</label>
+                <input type="text" id="companyName" placeholder="Acme Inc." required>
+            </div>
+            <div class="input-group">
+                <label>Company Email *</label>
+                <input type="email" id="companyEmail" placeholder="contact@acme.com" required>
+            </div>
+            <div class="input-group">
+                <label>Company Phone</label>
+                <input type="tel" id="companyPhone" placeholder="+1 234 567 8900">
+            </div>
+            <div class="input-group">
+                <label>Company Website</label>
+                <input type="url" id="companyWebsite" placeholder="https://acme.com">
+            </div>
+            <div class="input-group">
+                <label>Industry</label>
+                <input type="text" id="industry" placeholder="Technology, Healthcare, etc.">
+            </div>
+            <div class="input-group">
+                <label>Company Size</label>
+                <select id="companySize">
+                    <option value="1-10">1-10 employees</option>
+                    <option value="11-50">11-50 employees</option>
+                    <option value="51-200">51-200 employees</option>
+                    <option value="201-500">201-500 employees</option>
+                    <option value="500+">500+ employees</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Country</label>
+                <input type="text" id="country" placeholder="Country">
+            </div>
+            <div class="input-group">
+                <label>State / Province</label>
+                <input type="text" id="state" placeholder="State">
+            </div>
+            <div class="input-group">
+                <label>City</label>
+                <input type="text" id="city" placeholder="City">
+            </div>
+            <div class="input-group">
+                <label>Address</label>
+                <textarea id="address" rows="2" placeholder="Street address"></textarea>
+            </div>
+            <div class="input-group">
+                <label>Domain (for email verification) *</label>
+                <input type="text" id="domain" placeholder="acme.com" required>
+                <small>Employees must have emails ending with @acme.com</small>
+            </div>
+
+            <!-- Departments (Dynamic) -->
+            <div class="section-title">Departments (Optional)</div>
+            <div class="dynamic-section" id="departmentsSection">
+                <div id="departmentsList" class="dynamic-items"></div>
+                <button type="button" class="add-btn" id="addDepartmentBtn">+ Add Department</button>
+            </div>
+
+            <!-- Teams (Dynamic) -->
+            <div class="section-title">Teams (Optional)</div>
+            <div class="dynamic-section" id="teamsSection">
+                <div id="teamsList" class="dynamic-items"></div>
+                <button type="button" class="add-btn" id="addTeamBtn">+ Add Team</button>
+            </div>
+
+            <!-- Admin Details -->
+            <div class="section-title">Admin Account</div>
+            <div class="input-group">
+                <label>Full Name *</label>
+                <input type="text" id="adminName" placeholder="John Doe" required>
+            </div>
+            <div class="input-group">
+                <label>Work Email *</label>
+                <input type="email" id="adminEmail" placeholder="admin@acme.com" required>
+            </div>
+            <div class="input-group">
+                <label>Mobile Number</label>
+                <input type="tel" id="adminMobile" placeholder="+1 234 567 8900">
+            </div>
+            <div class="input-group">
+                <label>Role / Designation</label>
+                <input type="text" id="adminRole" placeholder="CEO, IT Manager, etc.">
+            </div>
+            <div class="input-group">
+                <label>Password *</label>
+                <input type="password" id="adminPassword" placeholder="Create a strong password" required>
+            </div>
+            <div class="input-group">
+                <label>Confirm Password *</label>
+                <input type="password" id="confirmPassword" placeholder="Repeat password" required>
+            </div>
+
+            <button type="submit" class="btn">Register Organization</button>
+        </form>
+
+        <div class="info-text">
+            Already have an account? <a href="/">Go to employee login</a>
+        </div>
+    </div>
+</div>
+
+<script src="/static/auth/org_login.js"></script>
+</body>
+</html>
